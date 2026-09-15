@@ -58,18 +58,18 @@ data class ExpenseEntity(
     val categoryId: Long,
     val description: String,
     val merchantName: String,
-    / Days since Unix epoch (LocalDate.toEpochDay). */
-val dateEpochDay: Long,
-/ Minutes from midnight — start time. /
-val startMinute: Int,
-/** Minutes from midnight — end time./
-val endMinute: Int,
-/ Amount in cents. Negative = expense, positive = income. */
-val amountCents: Long,
-val photoPath: String? = null,
-val status: String = "SETTLED",
-val referenceNo: String = "",
-val createdAt: Long = System.currentTimeMillis()
+    /** Days since Unix epoch (LocalDate.toEpochDay). */
+    val dateEpochDay: Long,
+    /** Minutes from midnight — start time. */
+    val startMinute: Int,
+    /** Minutes from midnight — end time. */
+    val endMinute: Int,
+    /** Amount in cents. Negative = expense, positive = income. */
+    val amountCents: Long,
+    val photoPath: String? = null,
+    val status: String = "SETTLED",
+    val referenceNo: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 @Entity(
@@ -87,10 +87,10 @@ val createdAt: Long = System.currentTimeMillis()
 data class BudgetGoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,
-    / Format: YYYY-MM */
-val yearMonth: String,
-val minGoalCents: Long,
-val maxGoalCents: Long
+    /** Format: YYYY-MM */
+    val yearMonth: String,
+    val minGoalCents: Long,
+    val maxGoalCents: Long
 )
 
 @Entity(tableName = "leaderboard_entries")
