@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.schwifty.savings"
+    namespace = "com.example.schwiftysavings"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.schwifty.savings"
+        applicationId = "com.example.schwiftysavings"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

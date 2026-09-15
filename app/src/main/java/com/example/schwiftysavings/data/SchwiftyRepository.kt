@@ -116,7 +116,7 @@ class SchwiftyRepository(
             return Result.failure(IllegalArgumentException("Description required"))
         }
         if (endMinute < startMinute) {
-            return Result.failure(IllegalArgumentException("End time must be after start time"))
+            return Result.failure(IllegalArgumentException("End time cannot be before start time"))
         }
         val photoPath = photoUri?.let { copyPhoto(it) }
         val id = db.expenseDao().insert(

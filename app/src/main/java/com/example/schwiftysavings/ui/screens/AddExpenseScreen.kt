@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,10 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,7 +41,6 @@ import com.example.schwiftysavings.ui.theme.Mint
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
     userId: Long,
@@ -55,10 +54,8 @@ fun AddExpenseScreen(
     var amountText by remember { mutableStateOf("") }
     var isIncome by remember { mutableStateOf(false) }
     var dateText by remember { mutableStateOf(LocalDate.now().toString()) }
-    var startHour by remember { mutableIntStateOf(9) }
-    var startMinute by remember { mutableIntStateOf(0) }
-    var endHour by remember { mutableIntStateOf(10) }
-    var endMinute by remember { mutableIntStateOf(0) }
+    var hour by remember { mutableIntStateOf(9) }
+    var minute by remember { mutableIntStateOf(0) }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
@@ -89,26 +86,36 @@ fun AddExpenseScreen(
         }
         OutlinedTextField(value = dateText, onValueChange = { dateText = it }, label = { Text("Date (YYYY-MM-DD) *") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(value = "%02d".format(startHour), onValueChange = { it.toIntOrNull()?.coerceIn(0, 23)?.let { v -> startHour = v } }, label = { Text("Start hour (0-23) *") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = "%02d".format(startMinute), onValueChange = { it.toIntOrNull()?.coerceIn(0, 59)?.let { v -> startMinute = v } }, label = { Text("Start minute *") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = "%02d".format(endHour), onValueChange = { it.toIntOrNull()?.coerceIn(0, 23)?.let { v -> endHour = v } }, label = { Text("End hour (0-23) *") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = "%02d".format(endMinute), onValueChange = { it.toIntOrNull()?.coerceIn(0, 59)?.let { v -> endMinute = v } }, label = { Text("End minute *") }, modifier = Modifier.fillMaxWidth())
+        Text("Time the transaction took place", color = Forest, fontWeight = FontWeight.SemiBold)
+        OutlinedTextField(value = "%02d".format(hour), onValueChange = { it.toIntOrNull()?.coerceIn(0, 23)?.let { v -> hour = v } }, label = { Text("Hour (0-23) *") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = "%02d".format(minute), onValueChange = { it.toIntOrNull()?.coerceIn(0, 59)?.let { v -> minute = v } }, label = { Text("Minute (0-59) *") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-            val selectedName = categories.firstOrNull { it.id == selectedCategoryId }?.name ?: "Select category *"
+        // Simple category dropdown (works on all Material3 versions)
+        val selectedName = categories.firstOrNull { it.id == selectedCategoryId }?.name ?: "Select category *"
+        Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = selectedName,
                 onValueChange = {},
                 readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth()
+                label = { Text("Category *") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true }
             )
-            androidx.compose.material3.ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 categories.forEach { cat ->
-                    DropdownMenuItem(text = { Text(cat.name) }, onClick = { selectedCategoryId = cat.id; expanded = false })
+                    DropdownMenuItem(
+                        text = { Text(cat.name) },
+                        onClick = {
+                            selectedCategoryId = cat.id
+                            expanded = false
+                        }
+                    )
                 }
             }
         }
+        // Tap the field label area again if menu doesn't open — also allow button:
+        TextButton(onClick = { expanded = true }) { Text("Choose category") }
         Spacer(Modifier.height(8.dp))
         Button(onClick = { photoPicker.launch("image/*") }, colors = ButtonDefaults.buttonColors(containerColor = Forest)) {
             Text(if (photoUri == null) "Add photo (optional)" else "Photo selected ✓")
@@ -126,9 +133,11 @@ fun AddExpenseScreen(
                     if (date == null) { error = "Date must be YYYY-MM-DD"; return@launch }
                     var cents = (amountRand * 100).toLong()
                     if (!isIncome) cents = -cents
+                    val timeMinute = hour * 60 + minute
+                    // Store same value in start/end so Room schema stays unchanged
                     repository.addExpense(
                         userId, catId, description, merchant, date.toEpochDay(),
-                        startHour * 60 + startMinute, endHour * 60 + endMinute, cents, photoUri
+                        timeMinute, timeMinute, cents, photoUri
                     ).onSuccess { onDone() }.onFailure { error = it.message }
                 }
             },
@@ -136,6 +145,6 @@ fun AddExpenseScreen(
             colors = ButtonDefaults.buttonColors(containerColor = Forest),
             shape = RoundedCornerShape(16.dp)
         ) { Text("Save expense") }
-        Text("Required: date, start/end time, description, category. Photo optional.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
+        Text("Required: date, time, description, category. Photo optional.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -20,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import com.example.schwiftysavings.data.SchwiftyRepository
 import com.example.schwiftysavings.data.local.ExpenseEntity
 import com.example.schwiftysavings.ui.theme.Mint
-import java.io.File
 
 @Composable
 fun PhotoScreen(expenseId: Long, repository: SchwiftyRepository, onBack: () -> Unit) {
@@ -32,7 +32,7 @@ fun PhotoScreen(expenseId: Long, repository: SchwiftyRepository, onBack: () -> U
             Text("No photo for this expense", color = Color.Gray)
         } else {
             val imageBitmap = remember(path) {
-                BitmapFactory.decodeFile(File(path).absolutePath)?.asImageBitmap()
+                BitmapFactory.decodeFile(path)?.asImageBitmap()
             }
             if (imageBitmap != null) {
                 Image(

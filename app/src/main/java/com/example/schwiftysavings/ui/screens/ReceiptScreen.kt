@@ -14,6 +14,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,15 +37,16 @@ fun ReceiptScreen(
     onOpenPhoto: () -> Unit
 ) {
     val expense by produceState<ExpenseEntity?>(null, expenseId) { value = repository.getExpense(expenseId) }
-    val categoryName by produceState("", expense) {
-        value = expense?.categoryId?.let { repository.getCategory(it)?.name } ?: ""
+    val currentExpense = expense
+    val categoryName by produceState("", currentExpense) {
+        value = currentExpense?.categoryId?.let { repository.getCategory(it)?.name } ?: ""
     }
 
     Column(Modifier.fillMaxSize().background(Mint).padding(20.dp)) {
         TextButton(onClick = onBack) { Text("← Back") }
         Text("Receipt", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Forest)
         Spacer(Modifier.height(16.dp))
-        val e = expense
+        val e = currentExpense
         if (e == null) {
             Text("Loading…")
         } else {
@@ -55,7 +57,7 @@ fun ReceiptScreen(
                 Text(MoneyFormat.zarFromCents(e.amountCents), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 Text(e.description, color = Color.Gray)
                 Text(
-                    "${DateUtils.formatEpochDay(e.dateEpochDay)} • ${DateUtils.formatMinute(e.startMinute)}–${DateUtils.formatMinute(e.endMinute)}",
+                    "${DateUtils.formatEpochDay(e.dateEpochDay)} • ${DateUtils.formatMinute(e.startMinute)}",
                     color = Color.Gray,
                     fontSize = 13.sp
                 )

@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -70,12 +69,17 @@ fun SchwiftyNavHost(
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
                             onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                // Home is start destination — pop back to it (fixes stuck on Transactions)
+                                if (tab.route == Screen.Home.route) {
+                                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                                } else {
+                                    navController.navigate(tab.route) {
+                                        popUpTo(Screen.Home.route) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },

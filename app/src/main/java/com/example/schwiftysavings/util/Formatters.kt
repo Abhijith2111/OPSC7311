@@ -4,38 +4,32 @@ import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Currency
 import java.util.Locale
 import kotlin.math.abs
 
 object MoneyFormat {
-    private val zar: NumberFormat = NumberFormat.getCurrencyInstance(Locale("en", "ZA")).apply {
-        currency = Currency.getInstance("ZAR")
-        maximumFractionDigits = 2
-        minimumFractionDigits = 2
+    /** Groups thousands with a space, e.g. 1234 -> "1 234" */
+    private val grouping: NumberFormat = NumberFormat.getIntegerInstance(Locale.US).apply {
+        isGroupingUsed = true
+    }
+
+    private fun formatRandAmount(cents: Long): String {
+        val absCents = abs(cents)
+        val whole = absCents / 100
+        val frac = absCents % 100
+        val wholeText = grouping.format(whole).replace(',', ' ')
+        return "$wholeText.${frac.toString().padStart(2, '0')}"
     }
 
     /** Signed display for list rows, e.g. -R45.00 */
     fun zarFromCents(cents: Long): String {
         val sign = if (cents < 0) "-" else if (cents > 0) "+" else ""
-        val formatted = zar.format(abs(cents) / 100.0)
-            .replace("ZAR", "R")
-            .replace('\u00A0', ' ')
-            .trim()
-        // NumberFormat may already include R; normalize for Figma-like "R1 234.56"
-        val core = formatted.replace("R", "").trim()
-        val spaced = core.replace(",", " ")
-        return "${sign}R$spaced"
+        return "${sign}R${formatRandAmount(cents)}"
     }
 
+    /** Unsigned display, e.g. R850.00 */
     fun zarUnsignedFromCents(cents: Long): String {
-        val core = zar.format(abs(cents) / 100.0)
-            .replace("ZAR", "R")
-            .replace('\u00A0', ' ')
-            .replace("R", "")
-            .trim()
-            .replace(",", " ")
-        return "R$core"
+        return "R${formatRandAmount(cents)}"
     }
 }
 

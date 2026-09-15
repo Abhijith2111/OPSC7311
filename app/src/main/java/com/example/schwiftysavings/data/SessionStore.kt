@@ -1,28 +1,19 @@
 package com.example.schwiftysavings.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-private val Context.dataStore by preferencesDataStore(name = "session")
-
-class SessionStore(private val context: Context) {
-    private val userIdKey = longPreferencesKey("logged_in_user_id")
-
-    val userIdFlow: Flow<Long?> = context.dataStore.data.map { prefs ->
-        prefs[userIdKey]
-    }
+/**
+ * Session is kept in memory only (not saved on disk).
+ * When the app is closed, the user must log in again.
+ */
+class SessionStore(@Suppress("UNUSED_PARAMETER") context: Context) {
+    private val _userId = MutableStateFlow<Long?>(null)
+    val userIdFlow: Flow<Long?> = _userId.asStateFlow()
 
     suspend fun setUserId(userId: Long?) {
-        context.dataStore.edit { prefs ->
-            if (userId == null) {
-                prefs.remove(userIdKey)
-            } else {
-                prefs[userIdKey] = userId
-            }
-        }
+        _userId.value = userId
     }
 }
