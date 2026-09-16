@@ -67,7 +67,7 @@ fun PaymentsScreen(
         Spacer(Modifier.height(16.dp))
         Text("UPCOMING BILLS", color = Color.Gray, fontSize = 12.sp)
         Spacer(Modifier.height(8.dp))
-        listOf("Figma Professional" to 33000L, "Cursor AI" to 45000L).forEach { (title, cents) ->
+        listOf("Figma Professional" to 33000L, "Spotify Premium" to 45000L).forEach { (title, cents) ->
             Row(
                 Modifier
                     .fillMaxWidth()
