@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.example.schwiftysavings.data.SchwiftyRepository
 import com.example.schwiftysavings.ui.theme.Forest
 import com.example.schwiftysavings.ui.theme.Mint
+import com.example.schwiftysavings.util.DateUtils
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -98,7 +99,15 @@ fun AddExpenseScreen(
         TextButton(onClick = { isIncome = !isIncome }) {
             Text(if (isIncome) "Type: Income (+)" else "Type: Expense (−)")
         }
-        OutlinedTextField(value = dateText, onValueChange = { dateText = it }, label = { Text("Date (YYYY-MM-DD) *") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = dateText,
+            onValueChange = { dateText = it },
+            label = { Text("Date (YYYY-MM-DD) *") },
+            supportingText = {
+                Text("Past dates allowed, e.g. 2024-03-15 or 15/03/2024")
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(Modifier.height(8.dp))
         Text("Time the transaction took place", color = Forest, fontWeight = FontWeight.SemiBold)
         OutlinedTextField(
@@ -187,8 +196,12 @@ fun AddExpenseScreen(
                     if (catId == null) { error = "Choose a category"; return@launch }
                     val amountRand = amountText.toDoubleOrNull()
                     if (amountRand == null) { error = "Enter a valid amount"; return@launch }
-                    val date = runCatching { LocalDate.parse(dateText) }.getOrNull()
-                    if (date == null) { error = "Date must be YYYY-MM-DD"; return@launch }
+                    // Past (and present) dates are allowed — no “must be today” rule
+                    val date = DateUtils.parseFlexibleDate(dateText)
+                    if (date == null) {
+                        error = "Enter a valid date (YYYY-MM-DD or DD/MM/YYYY)"
+                        return@launch
+                    }
                     var cents = (amountRand * 100).toLong()
                     if (!isIncome) cents = -cents
                     val h = hourText.toIntOrNull()

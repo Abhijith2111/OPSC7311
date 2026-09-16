@@ -37,11 +37,31 @@ object DateUtils {
     private val displayDate: DateTimeFormatter =
         DateTimeFormatter.ofPattern("MMM d yyyy", Locale.ENGLISH)
 
+    private val inputFormats = listOf(
+        DateTimeFormatter.ISO_LOCAL_DATE, // yyyy-MM-dd
+        DateTimeFormatter.ofPattern("d/M/yyyy"),
+        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+        DateTimeFormatter.ofPattern("yyyy/M/d"),
+        DateTimeFormatter.ofPattern("yyyy/MM/dd")
+    )
+
     fun todayEpochDay(): Long = LocalDate.now().toEpochDay()
 
     fun currentYearMonth(): String = YearMonth.now().toString()
 
     fun formatEpochDay(day: Long): String = LocalDate.ofEpochDay(day).format(displayDate)
+
+    /** Accepts past or present dates. No “must be today” rule. */
+    fun parseFlexibleDate(text: String): LocalDate? {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return null
+        inputFormats.forEach { fmt ->
+            runCatching { LocalDate.parse(trimmed, fmt) }.getOrNull()?.let { return it }
+        }
+        return null
+    }
 
     fun formatMinute(minute: Int): String {
         val h = minute / 60
@@ -68,6 +88,7 @@ object DateUtils {
                 start.toEpochDay() to today.toEpochDay()
             }
             PeriodFilter.LAST_30_DAYS -> today.minusDays(29).toEpochDay() to today.toEpochDay()
+            PeriodFilter.ALL -> LocalDate.of(2000, 1, 1).toEpochDay() to LocalDate.of(2100, 12, 31).toEpochDay()
         }
     }
 }
@@ -76,5 +97,6 @@ enum class PeriodFilter(val label: String) {
     TODAY("Today"),
     THIS_WEEK("This week"),
     THIS_MONTH("This month"),
-    LAST_30_DAYS("Last 30 days")
+    LAST_30_DAYS("Last 30 days"),
+    ALL("All")
 }

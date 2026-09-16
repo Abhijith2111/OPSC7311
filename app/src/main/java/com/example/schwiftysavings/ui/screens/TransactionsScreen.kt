@@ -45,7 +45,7 @@ fun TransactionsScreen(
     onOpenTotals: () -> Unit,
     onAddExpense: () -> Unit
 ) {
-    var period by remember { mutableStateOf(PeriodFilter.THIS_MONTH) }
+    var period by remember { mutableStateOf(PeriodFilter.ALL) }
     var typeFilter by remember { mutableStateOf("All") }
     val (start, end) = DateUtils.periodRange(period)
     val expenses by repository.observeExpenses(userId, start, end).collectAsState(initial = emptyList())
