@@ -4,7 +4,7 @@ Kotlin Android budget tracker prototype (Compose + Room).
 
 ## Students
 - Abhijith Naidoo / ST10453249
-- Module: PROG7313 / OPSC7311
+- Module: OPSC7311
 
 ## Features
 - Username/password register + login (Room + hashed passwords)
