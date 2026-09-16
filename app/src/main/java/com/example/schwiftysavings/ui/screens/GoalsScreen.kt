@@ -14,6 +14,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,12 +43,30 @@ import java.util.Locale
 @Composable
 fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit) {
     val goal by repository.observeGoal(userId).collectAsState(initial = null)
-    // SeekBar range in whole Rands (0..50000)
-    var minRands by remember(goal) { mutableIntStateOf(((goal?.minGoalCents ?: 50_000) / 100).toInt().coerceIn(0, 50_000)) }
-    var maxRands by remember(goal) { mutableIntStateOf(((goal?.maxGoalCents ?: 120_000) / 100).toInt().coerceIn(0, 50_000)) }
+    // Keep one MutableState for the whole screen so SeekBar listeners stay valid.
+    // Do NOT use remember(goal) — that recreates state while AndroidView keeps the old listener.
+    var minRands by remember { mutableIntStateOf(500) }
+    var maxRands by remember { mutableIntStateOf(1_200) }
+    var seededFromDb by remember { mutableStateOf(false) }
+    var draggingMin by remember { mutableStateOf(false) }
+    var draggingMax by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale("en", "ZA")) }
+
+    // Load saved goals once (or when DB values change after Save), never while dragging
+    LaunchedEffect(goal?.minGoalCents, goal?.maxGoalCents) {
+        if (draggingMin || draggingMax) return@LaunchedEffect
+        val g = goal
+        if (g != null) {
+            minRands = (g.minGoalCents / 100).toInt().coerceIn(0, 50_000)
+            maxRands = (g.maxGoalCents / 100).toInt().coerceIn(0, 50_000)
+            seededFromDb = true
+        } else if (!seededFromDb) {
+            minRands = 500
+            maxRands = 1_200
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().background(Mint).padding(20.dp)
@@ -68,12 +87,20 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
                         override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                             if (fromUser) minRands = progress
                         }
-                        override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                        override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                        override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                            draggingMin = true
+                        }
+                        override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                            draggingMin = false
+                        }
                     })
                 }
             },
-            update = { it.progress = minRands },
+            update = { seekBar ->
+                if (!draggingMin && seekBar.progress != minRands) {
+                    seekBar.progress = minRands
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -89,12 +116,20 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
                         override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                             if (fromUser) maxRands = progress
                         }
-                        override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                        override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                        override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                            draggingMax = true
+                        }
+                        override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                            draggingMax = false
+                        }
                     })
                 }
             },
-            update = { it.progress = maxRands },
+            update = { seekBar ->
+                if (!draggingMax && seekBar.progress != maxRands) {
+                    seekBar.progress = maxRands
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
