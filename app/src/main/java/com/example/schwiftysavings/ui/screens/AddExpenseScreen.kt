@@ -21,6 +21,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -115,33 +116,55 @@ fun AddExpenseScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
         Spacer(Modifier.height(8.dp))
-        // Simple category dropdown (works on all Material3 versions)
         val selectedName = categories.firstOrNull { it.id == selectedCategoryId }?.name ?: "Select category *"
-        Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = selectedName,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Category *") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = true }
+        Text("Category *", color = Forest, fontWeight = FontWeight.SemiBold)
+        if (categories.isEmpty()) {
+            Text(
+                "No categories yet. Go to Settings → Categories and add at least one, then come back.",
+                color = Color.Red,
+                fontSize = 13.sp
             )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                categories.forEach { cat ->
-                    DropdownMenuItem(
-                        text = { Text(cat.name) },
-                        onClick = {
-                            selectedCategoryId = cat.id
-                            expanded = false
-                        }
+        } else {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = selectedName,
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text("Tap to choose") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = Forest,
+                        disabledBorderColor = Forest,
+                        disabledLabelColor = Forest,
+                        disabledContainerColor = Color.White
                     )
+                )
+                // Full-size overlay — OutlinedTextField alone often blocks clickable{}
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .clickable { expanded = true }
+                )
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    categories.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat.name) },
+                            onClick = {
+                                selectedCategoryId = cat.id
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
-        }
-        // Tap the field label area again if menu doesn't open — also allow button:
-        TextButton(onClick = { expanded = true }) {
-            Text("Choose category", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            TextButton(onClick = { expanded = true }) {
+                Text("Choose category", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         Spacer(Modifier.height(8.dp))
         Button(
