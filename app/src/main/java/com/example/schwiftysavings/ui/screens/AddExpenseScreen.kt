@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,7 +26,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.schwiftysavings.data.SchwiftyRepository
@@ -40,22 +43,32 @@ import com.example.schwiftysavings.ui.theme.Forest
 import com.example.schwiftysavings.ui.theme.Mint
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Composable
 fun AddExpenseScreen(
     userId: Long,
     repository: SchwiftyRepository,
+    entry: String = "expense",
     onDone: () -> Unit,
     onBack: () -> Unit
 ) {
+    val entryKey = entry.lowercase()
+    val (screenTitle, submitLabel) = when (entryKey) {
+        "request" -> "Request money" to "Submit request"
+        "pay" -> "Pay" to "Pay now"
+        "send" -> "Send money" to "Send now"
+        else -> "Create expense" to "Save expense"
+    }
     val categories by repository.observeCategories(userId).collectAsState(initial = emptyList())
+    val now = remember { LocalTime.now() }
     var description by remember { mutableStateOf("") }
     var merchant by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
-    var isIncome by remember { mutableStateOf(false) }
+    var isIncome by remember(entryKey) { mutableStateOf(entryKey == "request") }
     var dateText by remember { mutableStateOf(LocalDate.now().toString()) }
-    var hour by remember { mutableIntStateOf(9) }
-    var minute by remember { mutableIntStateOf(0) }
+    var hourText by remember { mutableStateOf(now.hour.toString()) }
+    var minuteText by remember { mutableStateOf(now.minute.toString()) }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
@@ -74,7 +87,7 @@ fun AddExpenseScreen(
             .padding(20.dp)
     ) {
         TextButton(onClick = onBack) { Text("← Back") }
-        Text("Create expense", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Forest)
+        Text(screenTitle, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Forest)
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description *") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
@@ -87,8 +100,20 @@ fun AddExpenseScreen(
         OutlinedTextField(value = dateText, onValueChange = { dateText = it }, label = { Text("Date (YYYY-MM-DD) *") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         Text("Time the transaction took place", color = Forest, fontWeight = FontWeight.SemiBold)
-        OutlinedTextField(value = "%02d".format(hour), onValueChange = { it.toIntOrNull()?.coerceIn(0, 23)?.let { v -> hour = v } }, label = { Text("Hour (0-23) *") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = "%02d".format(minute), onValueChange = { it.toIntOrNull()?.coerceIn(0, 59)?.let { v -> minute = v } }, label = { Text("Minute (0-59) *") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = hourText,
+            onValueChange = { hourText = it.filter { ch -> ch.isDigit() }.take(2) },
+            label = { Text("Hour (0-23) *") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+        OutlinedTextField(
+            value = minuteText,
+            onValueChange = { minuteText = it.filter { ch -> ch.isDigit() }.take(2) },
+            label = { Text("Minute (0-59) *") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
         Spacer(Modifier.height(8.dp))
         // Simple category dropdown (works on all Material3 versions)
         val selectedName = categories.firstOrNull { it.id == selectedCategoryId }?.name ?: "Select category *"
@@ -115,10 +140,20 @@ fun AddExpenseScreen(
             }
         }
         // Tap the field label area again if menu doesn't open — also allow button:
-        TextButton(onClick = { expanded = true }) { Text("Choose category") }
+        TextButton(onClick = { expanded = true }) {
+            Text("Choose category", maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { photoPicker.launch("image/*") }, colors = ButtonDefaults.buttonColors(containerColor = Forest)) {
-            Text(if (photoUri == null) "Add photo (optional)" else "Photo selected ✓")
+        Button(
+            onClick = { photoPicker.launch("image/*") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Forest)
+        ) {
+            Text(
+                text = if (photoUri == null) "Add photo" else "Photo added",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         if (error != null) Text(error!!, color = Color.Red)
         Spacer(Modifier.height(16.dp))
@@ -133,7 +168,23 @@ fun AddExpenseScreen(
                     if (date == null) { error = "Date must be YYYY-MM-DD"; return@launch }
                     var cents = (amountRand * 100).toLong()
                     if (!isIncome) cents = -cents
-                    val timeMinute = hour * 60 + minute
+                    val h = hourText.toIntOrNull()
+                    val m = minuteText.toIntOrNull()
+                    when {
+                        h == null || m == null -> {
+                            error = "Enter valid hour and minute"
+                            return@launch
+                        }
+                        h !in 0..23 -> {
+                            error = "Hour must be 0–23"
+                            return@launch
+                        }
+                        m !in 0..59 -> {
+                            error = "Minute must be 0–59"
+                            return@launch
+                        }
+                    }
+                    val timeMinute = h * 60 + m
                     // Store same value in start/end so Room schema stays unchanged
                     repository.addExpense(
                         userId, catId, description, merchant, date.toEpochDay(),
@@ -144,7 +195,21 @@ fun AddExpenseScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Forest),
             shape = RoundedCornerShape(16.dp)
-        ) { Text("Save expense") }
-        Text("Required: date, time, description, category. Photo optional.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
+        ) {
+            Text(
+                text = submitLabel,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Text(
+            "Required: date, time, description, category.",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        )
     }
 }

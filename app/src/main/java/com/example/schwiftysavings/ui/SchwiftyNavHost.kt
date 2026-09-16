@@ -106,7 +106,9 @@ fun SchwiftyNavHost(
                 HomeScreen(
                     userId = loggedInUserId,
                     repository = repository,
-                    onAddExpense = { navController.navigate(Screen.AddExpense.route) },
+                    onAddExpense = { entry ->
+                        navController.navigate(Screen.AddExpense.create(entry))
+                    },
                     onOpenTransactions = { navController.navigate(Screen.Transactions.route) },
                     onOpenExpense = { id -> navController.navigate(Screen.Receipt.create(id)) }
                 )
@@ -117,7 +119,7 @@ fun SchwiftyNavHost(
                     repository = repository,
                     onOpenGoals = { navController.navigate(Screen.Goals.route) },
                     onOpenPayments = { navController.navigate(Screen.Payments.route) },
-                    onAddExpense = { navController.navigate(Screen.AddExpense.route) }
+                    onAddExpense = { navController.navigate(Screen.AddExpense.create()) }
                 )
             }
             composable(Screen.Payments.route) {
@@ -125,7 +127,7 @@ fun SchwiftyNavHost(
                     userId = loggedInUserId,
                     repository = repository,
                     onBack = { navController.popBackStack() },
-                    onAddExpense = { navController.navigate(Screen.AddExpense.route) }
+                    onAddExpense = { navController.navigate(Screen.AddExpense.create()) }
                 )
             }
             composable(Screen.Transactions.route) {
@@ -135,7 +137,7 @@ fun SchwiftyNavHost(
                     onOpenExpense = { id -> navController.navigate(Screen.Receipt.create(id)) },
                     onOpenPhoto = { id -> navController.navigate(Screen.Photo.create(id)) },
                     onOpenTotals = { navController.navigate(Screen.CategoryTotals.route) },
-                    onAddExpense = { navController.navigate(Screen.AddExpense.route) }
+                    onAddExpense = { navController.navigate(Screen.AddExpense.create()) }
                 )
             }
             composable(Screen.Leaderboard.route) {
@@ -159,10 +161,20 @@ fun SchwiftyNavHost(
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.AddExpense.route) {
+            composable(
+                route = Screen.AddExpense.route,
+                arguments = listOf(
+                    navArgument("entry") {
+                        type = NavType.StringType
+                        defaultValue = "expense"
+                    }
+                )
+            ) { backStackEntry ->
+                val entry = backStackEntry.arguments?.getString("entry") ?: "expense"
                 AddExpenseScreen(
                     userId = loggedInUserId,
                     repository = repository,
+                    entry = entry,
                     onDone = { navController.popBackStack() },
                     onBack = { navController.popBackStack() }
                 )

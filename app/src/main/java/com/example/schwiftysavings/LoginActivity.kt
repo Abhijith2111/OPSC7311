@@ -1,13 +1,16 @@
 package com.example.schwiftysavings
 
 import android.content.Intent
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,7 +29,10 @@ import com.example.schwiftysavings.ui.theme.SchwiftyTheme
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        )
         val app = application as SchwiftyApplication
 
         setContent {
@@ -40,7 +46,7 @@ class LoginActivity : ComponentActivity() {
                     }
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = Mint) {
+                Box(Modifier.fillMaxSize().background(Mint)) {
                     // Simple toggle between login and register (no NavHost needed here)
                     var showRegister by remember { mutableStateOf(false) }
                     if (showRegister) {

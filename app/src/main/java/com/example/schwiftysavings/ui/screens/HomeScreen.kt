@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.schwiftysavings.data.SchwiftyRepository
@@ -43,7 +44,7 @@ import com.example.schwiftysavings.util.PeriodFilter
 fun HomeScreen(
     userId: Long,
     repository: SchwiftyRepository,
-    onAddExpense: () -> Unit,
+    onAddExpense: (String) -> Unit,
     onOpenTransactions: () -> Unit,
     onOpenExpense: (Long) -> Unit
 ) {
@@ -77,13 +78,24 @@ fun HomeScreen(
                 )
                 Text("Signed in as ${user?.displayName ?: "..."}", color = Color(0xFFD8F3DC), fontSize = 12.sp)
                 Spacer(Modifier.height(20.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     listOf("Pay", "Send", "Request").forEach { label ->
                         Button(
-                            onClick = onAddExpense,
+                            onClick = { onAddExpense(label.lowercase()) },
+                            modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D6A4F)),
                             shape = RoundedCornerShape(24.dp)
-                        ) { Text(label) }
+                        ) {
+                            Text(
+                                text = label,
+                                maxLines = 1,
+                                overflow = TextOverflow.Clip,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
             }

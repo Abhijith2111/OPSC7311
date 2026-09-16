@@ -7,7 +7,9 @@ sealed class Screen(val route: String) {
     data object Leaderboard : Screen("leaderboard")
     data object Settings : Screen("settings")
     data object Categories : Screen("categories")
-    data object AddExpense : Screen("add_expense")
+    data object AddExpense : Screen("add_expense/{entry}") {
+        fun create(entry: String = "expense") = "add_expense/$entry"
+    }
     data object Goals : Screen("goals")
     data object Payments : Screen("payments")
     data object CategoryTotals : Screen("category_totals")
