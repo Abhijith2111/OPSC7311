@@ -33,8 +33,18 @@ Unlisted YouTube link: **PASTE LINK HERE**
 - GitHub Actions: `.github/workflows/android-ci.yml` (green on `main`)
 
 ## APK
-Debug APK available from GitHub Actions **Artifacts** (`app-debug`) and locally at:
-`app/build/outputs/apk/debug/app-debug.apk`
+Debug APK files can be found locally at:
+
+`OPSC\OPSC7311\app\build\outputs\apk\debug`
+
+(file name: `app-debug.apk`)
+
+If that folder is not there yet:
+1. In Android Studio go to **Build → Generate App Bundles or APKs → Generate APKs**
+2. Or run `.\gradlew.bat assembleDebug` from the project root
+3. Then open the path above
+
+You can also download the debug APK from GitHub Actions **Artifacts** (`app-debug`).
 
 ## Reference list
 
