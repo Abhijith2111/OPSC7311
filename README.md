@@ -4,6 +4,9 @@ Kotlin Android budget tracker prototype (Compose + Room).
 
 ## Students
 - Abhijith Naidoo / ST10453249
+- Barrie-George Davies / ST10449636
+- Tristan Robinson / ST10439581
+- Aneaho Nemakonde / ST10442088
 - Module: OPSC7311
 
 ## Features
