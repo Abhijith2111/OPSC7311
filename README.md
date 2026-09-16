@@ -20,7 +20,7 @@ Kotlin Android budget tracker prototype (Compose + Room).
 - Local RoomDB (`schwifty_savings.db`)
 
 ## Demo video
-Unlisted YouTube link: **PASTE LINK HERE**
+Unlisted YouTube link: <https://youtu.be/5R3Zvi8tigU>
 
 ## How to run
 1. Clone this repo
