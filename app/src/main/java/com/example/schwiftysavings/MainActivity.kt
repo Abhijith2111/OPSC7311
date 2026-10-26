@@ -50,6 +50,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             finish()
+                        } else {
+                            app.repository.pullFromCloud(id)
+                            Log.d("MainActivity", "Requested Firestore pull for user $id")
                         }
                     }
                 }

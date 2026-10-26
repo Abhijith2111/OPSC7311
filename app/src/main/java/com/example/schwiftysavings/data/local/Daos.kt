@@ -60,6 +60,8 @@ interface ExpenseDao {
 
     @Query("SELECT * FROM expenses WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): ExpenseEntity?
+    @Query("SELECT * FROM expenses WHERE userId = :userId" )
+    suspend fun listForUser(userId: Long): List<ExpenseEntity>
 
     @Query(
         """

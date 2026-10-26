@@ -15,11 +15,18 @@ import com.example.schwiftysavings.util.PeriodFilter
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 import java.util.UUID
+import com.example.schwiftysavings.data.remote.FirestoreSync
+import com.example.schwiftysavings.util.Badge
+import com.example.schwiftysavings.util.GoalZone
+import com.example.schwiftysavings.util.MonthProgress
+import kotlin.math.abs
+
 
 class SchwiftyRepository(
     private val db: SchwiftyDatabase,
     private val sessionStore: SessionStore,
-    private val appContext: Context
+    private val appContext: Context,
+    private val cloudSync: FirestoreSync
 ) {
     private val tag = "SchwiftyRepo"
 
@@ -32,6 +39,15 @@ class SchwiftyRepository(
             return Result.failure(IllegalArgumentException("Username required; password min 4 chars"))
         }
         if (db.userDao().findByUsername(clean) != null) {
+            return Result.failure(IllegalArgumentException("Username already taken"))
+        }
+        val takenOnline = try {
+            cloudSync.findUser(clean) != null
+        } catch (e: Exception) {
+            Log.e(tag, "Username check skipped: ${e.message}")
+            false
+        }
+        if (takenOnline) {
             return Result.failure(IllegalArgumentException("Username already taken"))
         }
         val salt = PasswordHasher.newSalt()
@@ -47,18 +63,36 @@ class SchwiftyRepository(
         )
         seedDefaultsForUser(id)
         sessionStore.setUserId(id)
+        cloud {
+            val savedUser = db.userDao().findById(id)
+            if (savedUser != null) cloudSync.pushUser(savedUser)
+            pushLocalSnapshot(id)
+        }
         Log.i(tag, "Registered user id=$id")
         return Result.success(id)
     }
 
     suspend fun login(username: String, password: String): Result<Long> {
-        val user = db.userDao().findByUsername(username.trim())
-            ?: return Result.failure(IllegalArgumentException("Invalid username or password"))
-        if (!PasswordHasher.matches(password, user.salt, user.passwordHash)) {
-            Log.w(tag, "Login failed for ${username.trim()}")
+        val clean = username.trim()
+        var user = db.userDao().findByUsername(clean)
+        if (user == null) {
+            try {
+                val remote = cloudSync.findUser(clean)
+                if (remote != null) {
+                    db.userDao().insert(remote)
+                    user = remote
+                    Log.i(tag, "User restored from Firestore id=${remote.id}")
+                }
+            } catch (e: Exception) {
+                Log.e(tag, "Could not read user from Firestore: ${e.message}")
+            }
+        }
+        if (user == null || !PasswordHasher.matches(password, user.salt, user.passwordHash)) {
+            Log.w(tag, "Login failed for $clean")
             return Result.failure(IllegalArgumentException("Invalid username or password"))
         }
         sessionStore.setUserId(user.id)
+        cloud { pullRemote(user.id) }
         Log.i(tag, "Login ok userId=${user.id}")
         return Result.success(user.id)
     }
@@ -83,6 +117,11 @@ class SchwiftyRepository(
         return try {
             val id = db.categoryDao().insert(CategoryEntity(userId = userId, name = clean))
             Log.d(tag, "Category created id=$id name=$clean")
+            val created = db.categoryDao().findById(id)
+            cloud {
+                if (created != null) cloudSync.pushCategory(created)
+                pushBadgesAndScore(userId)
+            }
             Result.success(id)
         } catch (e: Exception) {
             Result.failure(IllegalArgumentException("Category already exists"))
@@ -135,6 +174,11 @@ class SchwiftyRepository(
             )
         )
         Log.i(tag, "Expense saved id=$id amountCents=$amountCents photo=${photoPath != null}")
+        val saved = db.expenseDao().findById(id)
+        cloud {
+            if (saved != null) cloudSync.pushExpense(saved)
+            pushBadgesAndScore(userId)
+        }
         return Result.success(id)
     }
 
@@ -157,6 +201,11 @@ class SchwiftyRepository(
             )
         )
         Log.i(tag, "Goals saved min=$minCents max=$maxCents")
+        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth())
+        cloud {
+            if (goal != null) cloudSync.pushGoal(goal)
+            pushBadgesAndScore(userId)
+        }
         return Result.success(Unit)
     }
 
@@ -178,6 +227,97 @@ class SchwiftyRepository(
         return (goal.maxGoalCents - spentAbs).coerceAtLeast(0)
     }
 
+    suspend fun pullFromCloud(userId: Long) {
+        cloud { pullRemote(userId) }
+    }
+
+    suspend fun pastMonthProgress(userId: Long): MonthProgress {
+        val (start, end) = DateUtils.periodRange(PeriodFilter.LAST_30_DAYS)
+        val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
+        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth())
+        val zone = GoalZone.of(spent, goal?.minGoalCents, goal?.maxGoalCents)
+        return MonthProgress(spent, goal?.minGoalCents, goal?.maxGoalCents, zone)
+    }
+
+    suspend fun currentBadges(userId: Long): List<Badge> {
+        val expenses = db.expenseDao().listForUser(userId)
+        val days = expenses.map { it.dateEpochDay }.toSet()
+        val photos = expenses.count { !it.photoPath.isNullOrBlank() }
+        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth())
+        val (start, end) = DateUtils.periodRange(PeriodFilter.LAST_30_DAYS)
+        val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
+        val zone = GoalZone.of(spent, goal?.minGoalCents, goal?.maxGoalCents)
+        val today = java.time.LocalDate.now().toEpochDay()
+        return BadgeRules.evaluate(
+            expenseCount = expenses.size,
+            photoCount = photos,
+            distinctDays = days,
+            todayEpochDay = today,
+            hasGoal = goal != null,
+            zone = zone
+        )
+    }
+
+    suspend fun publishScore(userId: Long): String {
+        val user = db.userDao().findById(userId) ?: return "Not signed in"
+        return try {
+            cloudSync.pushLeaderboard(
+                userId,
+                user.leaderboardUsername,
+                savingsPercent(userId),
+                savedAmountCents(userId)
+            )
+            Log.i(tag, "Leaderboard score written to Firestore")
+            "Your score is stored online"
+        } catch (e: Exception) {
+            Log.e(tag, "Leaderboard upload failed: ${e.message}")
+            "Online save failed. Check your internet connection."
+        }
+    }
+
+    private suspend fun pushBadgesAndScore(userId: Long) {
+        cloudSync.pushBadges(userId, currentBadges(userId))
+        val user = db.userDao().findById(userId) ?: return
+        cloudSync.pushLeaderboard(
+            userId,
+            user.leaderboardUsername,
+            savingsPercent(userId),
+            savedAmountCents(userId)
+        )
+    }
+
+    private suspend fun pushLocalSnapshot(userId: Long) {
+        db.categoryDao().listForUser(userId).forEach { cloudSync.pushCategory(it) }
+        db.expenseDao().listForUser(userId).forEach { cloudSync.pushExpense(it) }
+        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth())
+        if (goal != null) cloudSync.pushGoal(goal)
+        pushBadgesAndScore(userId)
+    }
+
+    private suspend fun pullRemote(userId: Long) {
+        cloudSync.pullCategories(userId).forEach { category ->
+            if (db.categoryDao().findById(category.id) == null) {
+                db.categoryDao().insert(category)
+            }
+        }
+        cloudSync.pullExpenses(userId).forEach { expense ->
+            if (db.expenseDao().findById(expense.id) == null) {
+                db.expenseDao().insert(expense)
+            }
+        }
+        cloudSync.pullGoals(userId).forEach { goal ->
+            db.budgetGoalDao().upsert(goal)
+        }
+        Log.i(tag, "Pulled Firestore data for user $userId into Room")
+    }
+
+    private suspend fun cloud(block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: Exception) {
+            Log.e(tag, "Firestore sync failed: ${e.message}")
+        }
+    }
     private suspend fun seedDefaultsForUser(userId: Long) {
         listOf("Software", "Hardware", "Transport", "Revenue", "Yield Payment", "Groceries").forEach { name ->
             db.categoryDao().insert(CategoryEntity(userId = userId, name = name))

@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.schwiftysavings.data.SchwiftyRepository
 import com.example.schwiftysavings.data.SessionStore
 import com.example.schwiftysavings.data.local.SchwiftyDatabase
+import com.example.schwiftysavings.data.remote.FirestoreSync
 
 class SchwiftyApplication : Application() {
     lateinit var repository: SchwiftyRepository
@@ -14,7 +15,7 @@ class SchwiftyApplication : Application() {
         super.onCreate()
         val db = SchwiftyDatabase.getInstance(this)
         val session = SessionStore(this)
-        repository = SchwiftyRepository(db, session, this)
-        Log.d("SchwiftyApp", "Application started — repository ready")
+        repository = SchwiftyRepository(db, session, this, FirestoreSync())
+        Log.d("SchwiftyApp", "Application started — repository ready with Firestore")
     }
 }
