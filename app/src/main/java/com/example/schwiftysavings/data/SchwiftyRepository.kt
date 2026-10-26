@@ -26,6 +26,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 
+data class MonthSpend(
+    val label: String,
+    val spentCents: Long
+)
+
 class SchwiftyRepository(
     private val db: SchwiftyDatabase,
     private val sessionStore: SessionStore,
@@ -248,6 +253,21 @@ class SchwiftyRepository(
         val received = db.expenseDao().totalReceivedCents(userId, start, end)
         val spent = kotlin.math.abs(db.expenseDao().totalSpentCents(userId, start, end))
         return received - spent
+    }
+
+    suspend fun monthlySpending(userId: Long): List<MonthSpend> {
+        val now = java.time.YearMonth.now()
+        return (5 downTo 0).map { offset ->
+            val month = now.minusMonths(offset.toLong())
+            val start = month.atDay(1).toEpochDay()
+            val end = month.atEndOfMonth().toEpochDay()
+            val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
+            val label = month.month.getDisplayName(
+                java.time.format.TextStyle.FULL,
+                java.util.Locale.ENGLISH
+            )
+            MonthSpend(label, spent)
+        }
     }
 
     suspend fun pullFromCloud(userId: Long) {
