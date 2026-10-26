@@ -46,6 +46,8 @@ import com.example.schwiftysavings.ui.screens.BadgesScreen
 import com.example.schwiftysavings.ui.screens.GoalProgressScreen
 import com.example.schwiftysavings.ui.screens.SpendingChartScreen
 
+
+
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 @Composable
@@ -171,8 +173,7 @@ fun SchwiftyNavHost(
                     }
                 )
             }
-                )
-            }
+
             composable(Screen.Categories.route) {
                 CategoriesScreen(
                     userId = loggedInUserId,
@@ -213,6 +214,28 @@ fun SchwiftyNavHost(
                 onOpenChart = { navController.navigate(Screen.SpendingChart.route) }
             )
         }
+            composable(Screen.SpendingChart.route) {
+                SpendingChartScreen(
+                    userId = loggedInUserId,
+                    repository = repository,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.GoalProgress.route) {
+                GoalProgressScreen(
+                    userId = loggedInUserId,
+                    repository = repository,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Badges.route) {
+                BadgesScreen(
+                    userId = loggedInUserId,
+                    repository = repository,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
             composable(
                 route = Screen.Receipt.route,
                 arguments = listOf(navArgument("expenseId") { type = NavType.LongType })
