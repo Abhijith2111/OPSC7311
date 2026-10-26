@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -48,12 +49,12 @@ import com.example.schwiftysavings.ui.screens.PaymentsScreen
 import com.example.schwiftysavings.ui.screens.PhotoScreen
 import com.example.schwiftysavings.ui.screens.ReceiptScreen
 import com.example.schwiftysavings.ui.screens.SettingsScreen
+import com.example.schwiftysavings.ui.screens.ShopScreen
 import com.example.schwiftysavings.ui.screens.TransactionsScreen
 import com.example.schwiftysavings.ui.theme.Forest
 import com.example.schwiftysavings.ui.theme.Mint
 import kotlinx.coroutines.delay
 import com.example.schwiftysavings.ui.screens.BadgesScreen
-import com.example.schwiftysavings.ui.screens.GoalProgressScreen
 import com.example.schwiftysavings.ui.screens.SpendingChartScreen
 
 
@@ -83,6 +84,7 @@ fun SchwiftyNavHost(
         Tab(Screen.Cards.route, "Card", Icons.Default.CreditCard),
         Tab(Screen.Transactions.route, "Transactions", Icons.Default.ReceiptLong),
         Tab(Screen.Leaderboard.route, "Leaderboard", Icons.Default.Leaderboard),
+        Tab(Screen.Shop.route, "Shop", Icons.Default.ShoppingCart),
         Tab(Screen.Settings.route, "Settings", Icons.Default.Settings)
     )
 
@@ -178,6 +180,9 @@ fun SchwiftyNavHost(
             composable(Screen.Leaderboard.route) {
                 LeaderboardScreen(userId = loggedInUserId, repository = repository)
             }
+            composable(Screen.Shop.route) {
+                ShopScreen(userId = loggedInUserId, repository = repository)
+            }
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     userId = loggedInUserId,
@@ -185,7 +190,6 @@ fun SchwiftyNavHost(
                     onCategories = { navController.navigate(Screen.Categories.route) },
                     onGoals = { navController.navigate(Screen.Goals.route) },
                     onChart = { navController.navigate(Screen.SpendingChart.route) },
-                    onProgress = { navController.navigate(Screen.GoalProgress.route) },
                     onBadges = { navController.navigate(Screen.Badges.route) },
                     onLoggedOut = {
                         // MainActivity observes session and returns to LoginActivity via Intent
@@ -235,13 +239,6 @@ fun SchwiftyNavHost(
         }
             composable(Screen.SpendingChart.route) {
                 SpendingChartScreen(
-                    userId = loggedInUserId,
-                    repository = repository,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(Screen.GoalProgress.route) {
-                GoalProgressScreen(
                     userId = loggedInUserId,
                     repository = repository,
                     onBack = { navController.popBackStack() }

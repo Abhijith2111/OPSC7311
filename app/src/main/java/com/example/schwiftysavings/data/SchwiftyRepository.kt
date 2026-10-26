@@ -20,6 +20,7 @@ import com.example.schwiftysavings.util.Badge
 import com.example.schwiftysavings.util.BadgeRules
 import com.example.schwiftysavings.util.GoalZone
 import com.example.schwiftysavings.util.MonthProgress
+import com.example.schwiftysavings.util.ShopCatalog
 import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,7 @@ class SchwiftyRepository(
     private val cloudSync: FirestoreSync
 ) {
     private val tag = "SchwiftyRepo"
+    private val rewardStore = RewardStore(appContext)
     private val seenBadgeIds = mutableSetOf<String>()
     private var badgesPrimed = false
     private val badgeNoticeFlow = MutableStateFlow<String?>(null)
@@ -256,9 +258,9 @@ class SchwiftyRepository(
     }
 
     suspend fun monthlySpending(userId: Long): List<MonthSpend> {
-        val now = java.time.YearMonth.now()
-        return (5 downTo 0).map { offset ->
-            val month = now.minusMonths(offset.toLong())
+        val year = java.time.Year.now().value
+        return (1..12).map { monthNumber ->
+            val month = java.time.YearMonth.of(year, monthNumber)
             val start = month.atDay(1).toEpochDay()
             val end = month.atEndOfMonth().toEpochDay()
             val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
@@ -306,6 +308,29 @@ class SchwiftyRepository(
             hasGoal = goal != null,
             zone = zone
         )
+    }
+
+    fun observeClaimedRewards(userId: Long) = rewardStore.claimed(userId)
+
+    suspend fun redeemReward(userId: Long, rewardId: String): Result<Unit> {
+        val reward = ShopCatalog.find(rewardId)
+            ?: return Result.failure(IllegalArgumentException("Unknown reward"))
+        val badges = currentBadges(userId)
+        if (badges.none { it.unlocked }) {
+            return Result.failure(IllegalStateException("Unlock a badge to open the shop"))
+        }
+        val claimed = rewardStore.claimedNow(userId)
+        if (rewardId in claimed) {
+            return Result.failure(IllegalStateException("Already redeemed"))
+        }
+        val earned = badges.filter { it.unlocked }.sumOf { it.points }
+        val spent = ShopCatalog.rewards.filter { it.id in claimed }.sumOf { it.cost }
+        if (earned - spent < reward.cost) {
+            return Result.failure(IllegalStateException("Not enough points"))
+        }
+        rewardStore.claim(userId, rewardId)
+        Log.i(tag, "Redeemed reward ${reward.id} for user $userId")
+        return Result.success(Unit)
     }
 
     suspend fun publishScore(userId: Long): String {

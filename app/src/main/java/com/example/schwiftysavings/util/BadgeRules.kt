@@ -8,6 +8,7 @@ data class Badge(
     val id: String,
     val title: String,
     val detail: String,
+    val points: Int,
     val unlocked: Boolean
 )
 
@@ -41,36 +42,42 @@ object BadgeRules {
                 id = "first_log",
                 title = "First Entry",
                 detail = "Log your first expense.",
+                points = 10,
                 unlocked = expenseCount > 0
             ),
             Badge(
                 id = "receipt",
                 title = "Receipt Keeper",
                 detail = "Attach a receipt photo to an expense.",
+                points = 15,
                 unlocked = photoCount > 0
             ),
             Badge(
                 id = "streak_3",
                 title = "3-day streak",
                 detail = "Log an expense on 3 days in a row.",
+                points = 20,
                 unlocked = streak >= 3
             ),
             Badge(
                 id = "streak_7",
                 title = "7-day streak",
                 detail = "Log an expense on 7 days in a row.",
+                points = 40,
                 unlocked = streak >= 7
             ),
             Badge(
                 id = "goal_setter",
                 title = "Goal Setter",
                 detail = "Save a minimum and a maximum spending goal.",
+                points = 15,
                 unlocked = hasGoal
             ),
             Badge(
                 id = "in_the_zone",
                 title = "In the Zone",
                 detail = "Keep the last 30 days of spending between your min and max.",
+                points = 30,
                 unlocked = zone == GoalZone.IN_RANGE
             )
         )

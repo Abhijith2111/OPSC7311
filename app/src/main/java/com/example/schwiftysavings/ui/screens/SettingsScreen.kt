@@ -41,7 +41,6 @@ fun SettingsScreen(
     onCategories: () -> Unit,
     onGoals: () -> Unit,
     onChart: () -> Unit,
-    onProgress: () -> Unit,
     onBadges: () -> Unit,
     onLoggedOut: () -> Unit
 ) {
@@ -77,7 +76,6 @@ fun SettingsScreen(
         SettingsRow("Categories", onCategories)
         SettingsRow("Monthly goals (min / max)", onGoals)
         SettingsRow("Spending graph", onChart)
-        SettingsRow("Goal progress", onProgress)
         SettingsRow("Badges", onBadges)
         Spacer(Modifier.height(20.dp))
         Button(

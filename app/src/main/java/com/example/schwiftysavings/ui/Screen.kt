@@ -5,6 +5,7 @@ sealed class Screen(val route: String) {
     data object Cards : Screen("cards")
     data object Transactions : Screen("transactions")
     data object Leaderboard : Screen("leaderboard")
+    data object Shop : Screen("shop")
     data object Settings : Screen("settings")
     data object Categories : Screen("categories")
     data object AddExpense : Screen("add_expense/{entry}") {
@@ -29,5 +30,6 @@ val bottomBarRoutes = listOf(
     Screen.Cards.route,
     Screen.Transactions.route,
     Screen.Leaderboard.route,
+    Screen.Shop.route,
     Screen.Settings.route
 )
