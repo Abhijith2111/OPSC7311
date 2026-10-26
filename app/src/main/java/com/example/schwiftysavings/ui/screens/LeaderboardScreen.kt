@@ -46,12 +46,14 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
     var displayName by remember { mutableStateOf("") }
     var myPercent by remember { mutableIntStateOf(0) }
     var mySaved by remember { mutableLongStateOf(0L) }
+    var cloudNote by remember { mutableStateOf("") }
 
     LaunchedEffect(userId) {
         val user = repository.currentUser(userId)
         displayName = user?.displayName?.ifBlank { user.username } ?: "You"
         myPercent = repository.savingsPercent(userId)
         mySaved = repository.savedAmountCents(userId)
+        cloudNote = repository.publishScore(userId)
     }
 
     // Merge current user into the list and rank by percent (highest first)
@@ -73,6 +75,9 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
             Spacer(Modifier.height(12.dp))
             Text("YOUR DISPLAY NAME", color = Color(0xFFB7E4C7), fontSize = 11.sp)
             Text(displayName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("YOUR DISPLAY NAME", color = Color(0xFFB7E4C7), fontSize = 11.sp)
+            Text(displayName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text(cloudNote, color = Color(0xFFD8F3DC), fontSize = 12.sp)
         }
         LazyColumn {
             itemsIndexed(ranked, key = { index, row -> "${row.isYou}-${row.name}-$index" }) { index, row ->

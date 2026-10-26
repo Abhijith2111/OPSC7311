@@ -42,6 +42,9 @@ import com.example.schwiftysavings.ui.screens.SettingsScreen
 import com.example.schwiftysavings.ui.screens.TransactionsScreen
 import com.example.schwiftysavings.ui.theme.Forest
 import com.example.schwiftysavings.ui.theme.Mint
+import com.example.schwiftysavings.ui.screens.BadgesScreen
+import com.example.schwiftysavings.ui.screens.GoalProgressScreen
+import com.example.schwiftysavings.ui.screens.SpendingChartScreen
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
@@ -160,9 +163,14 @@ fun SchwiftyNavHost(
                     repository = repository,
                     onCategories = { navController.navigate(Screen.Categories.route) },
                     onGoals = { navController.navigate(Screen.Goals.route) },
+                    onChart = { navController.navigate(Screen.SpendingChart.route) },
+                    onProgress = { navController.navigate(Screen.GoalProgress.route) },
+                    onBadges = { navController.navigate(Screen.Badges.route) },
                     onLoggedOut = {
                         // MainActivity observes session and returns to LoginActivity via Intent
                     }
+                )
+            }
                 )
             }
             composable(Screen.Categories.route) {
@@ -197,13 +205,14 @@ fun SchwiftyNavHost(
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.CategoryTotals.route) {
-                CategoryTotalsScreen(
-                    userId = loggedInUserId,
-                    repository = repository,
-                    onBack = { navController.popBackStack() }
-                )
-            }
+        composable(Screen.CategoryTotals.route) {
+            CategoryTotalsScreen(
+                userId = loggedInUserId,
+                repository = repository,
+                onBack = { navController.popBackStack() },
+                onOpenChart = { navController.navigate(Screen.SpendingChart.route) }
+            )
+        }
             composable(
                 route = Screen.Receipt.route,
                 arguments = listOf(navArgument("expenseId") { type = NavType.LongType })

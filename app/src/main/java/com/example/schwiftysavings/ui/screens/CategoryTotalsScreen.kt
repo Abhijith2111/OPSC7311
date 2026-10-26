@@ -34,8 +34,12 @@ import com.example.schwiftysavings.util.PeriodFilter
 import kotlin.math.abs
 
 @Composable
-fun CategoryTotalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit) {
-    var period by remember { mutableStateOf(PeriodFilter.THIS_MONTH) }
+fun CategoryTotalsScreen(
+    userId: Long,
+    repository: SchwiftyRepository,
+    onBack: () -> Unit,
+    onOpenChart: () -> Unit
+) {    var period by remember { mutableStateOf(PeriodFilter.THIS_MONTH) }
     val totals by produceState<List<CategoryTotalRow>>(emptyList(), userId, period) {
         val (start, end) = DateUtils.periodRange(period)
         value = repository.categoryTotals(userId, start, end)
@@ -45,6 +49,7 @@ fun CategoryTotalsScreen(userId: Long, repository: SchwiftyRepository, onBack: (
         TextButton(onClick = onBack) { Text("← Back") }
         Text("Category totals", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Forest)
         Text("Total money spent per category for a selected period.", color = Color.Gray)
+        TextButton(onClick = onOpenChart) { Text("View spending graph") }
         Spacer(Modifier.height(12.dp))
         Row {
             PeriodFilter.entries.forEach { p ->

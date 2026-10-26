@@ -13,6 +13,9 @@ sealed class Screen(val route: String) {
     data object Goals : Screen("goals")
     data object Payments : Screen("payments")
     data object CategoryTotals : Screen("category_totals")
+    data object SpendingChart : Screen("spending_chart")
+    data object GoalProgress : Screen("goal_progress")
+    data object Badges : Screen("badges")
     data object Receipt : Screen("receipt/{expenseId}") {
         fun create(expenseId: Long) = "receipt/$expenseId"
     }

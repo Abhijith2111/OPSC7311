@@ -40,6 +40,9 @@ fun SettingsScreen(
     repository: SchwiftyRepository,
     onCategories: () -> Unit,
     onGoals: () -> Unit,
+    onChart: () -> Unit,
+    onProgress: () -> Unit,
+    onBadges: () -> Unit,
     onLoggedOut: () -> Unit
 ) {
     val user by produceState<UserEntity?>(null, userId) { value = repository.currentUser(userId) }
@@ -73,6 +76,9 @@ fun SettingsScreen(
         Text("ACCOUNT MANAGEMENT", modifier = Modifier.padding(horizontal = 16.dp), color = Color.Gray, fontSize = 12.sp)
         SettingsRow("Categories", onCategories)
         SettingsRow("Monthly goals (min / max)", onGoals)
+        SettingsRow("Spending graph", onChart)
+        SettingsRow("Goal progress", onProgress)
+        SettingsRow("Badges", onBadges)
         Spacer(Modifier.height(20.dp))
         Button(
             onClick = {
