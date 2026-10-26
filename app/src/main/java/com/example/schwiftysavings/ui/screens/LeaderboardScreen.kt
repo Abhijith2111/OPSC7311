@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,19 +25,23 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.schwiftysavings.data.MonthReward
 import com.example.schwiftysavings.data.SchwiftyRepository
 import com.example.schwiftysavings.ui.theme.Forest
 import com.example.schwiftysavings.ui.theme.ForestDark
 import com.example.schwiftysavings.ui.theme.IncomeGreen
 import com.example.schwiftysavings.ui.theme.Mint
 import com.example.schwiftysavings.util.MoneyFormat
+import kotlinx.coroutines.launch
 
 private data class RankRow(
     val name: String,
@@ -47,6 +56,10 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
     var myPercent by remember { mutableIntStateOf(0) }
     var mySaved by remember { mutableLongStateOf(0L) }
     var cloudNote by remember { mutableStateOf("") }
+    var reward by remember { mutableStateOf<MonthReward?>(null) }
+    var amountText by remember { mutableStateOf("") }
+    var rewardMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(userId) {
         val user = repository.currentUser(userId)
@@ -54,6 +67,7 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
         myPercent = repository.savingsPercent(userId)
         mySaved = repository.savedAmountCents(userId)
         cloudNote = repository.publishScore(userId)
+        reward = repository.monthReward(userId)
     }
 
     // Merge current user into the list and rank by percent (highest first)
@@ -102,6 +116,110 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
                     )
                 }
             }
+            item {
+                MonthRewardCard(
+                    reward = reward,
+                    amountText = amountText,
+                    message = rewardMessage,
+                    onAmountChange = { amountText = it.filter { ch -> ch.isDigit() }.take(6) },
+                    onPlace = {
+                        val rands = amountText.toLongOrNull() ?: 0L
+                        scope.launch {
+                            val result = repository.placeInSavings(userId, rands)
+                            rewardMessage = result.fold(
+                                onSuccess = { credit ->
+                                    "Placed in savings. With 20% interest that is ${MoneyFormat.zarUnsignedFromCents(credit)}."
+                                },
+                                onFailure = { it.message ?: "Could not place savings" }
+                            )
+                            reward = repository.monthReward(userId)
+                        }
+                    },
+                    onUseVoucher = {
+                        scope.launch {
+                            val result = repository.useSavingsVoucher(userId)
+                            rewardMessage = result.fold(
+                                onSuccess = { "R1000 voucher used." },
+                                onFailure = { it.message ?: "Could not use voucher" }
+                            )
+                            reward = repository.monthReward(userId)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthRewardCard(
+    reward: MonthReward?,
+    amountText: String,
+    message: String?,
+    onAmountChange: (String) -> Unit,
+    onPlace: () -> Unit,
+    onUseVoucher: () -> Unit
+) {
+    val details = reward ?: return
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(Color.White, RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Text("End of ${details.monthLabel}", fontWeight = FontWeight.Bold, color = Forest, fontSize = 18.sp)
+        Text("You finished in place ${details.place}.", color = Color.Gray)
+        Text(
+            "Savings balance: ${MoneyFormat.zarUnsignedFromCents(details.savingsBalanceCents)}",
+            color = Forest,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        if (!details.eligible) {
+            Text(
+                "You are not eligible this month. Top ten who saved money can earn 20% interest on up to R2000.",
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        } else if (details.alreadyDeposited) {
+            Text("You already placed last month's savings.", color = Forest, modifier = Modifier.padding(top = 8.dp))
+        } else {
+            Text(
+                "Place up to ${MoneyFormat.zarUnsignedFromCents(details.maxDepositCents)} into savings. You earn 20% interest.",
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = onAmountChange,
+                label = { Text("Amount in rands") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+            Button(
+                onClick = onPlace,
+                modifier = Modifier.padding(top = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Forest),
+                shape = RoundedCornerShape(12.dp)
+            ) { Text("Place in savings") }
+        }
+        if (details.firstPlace) {
+            Spacer(Modifier.height(12.dp))
+            Text("First place prize: R1000 voucher", fontWeight = FontWeight.Bold, color = Forest)
+            if (details.voucherUsed) {
+                Text("Voucher used.", color = Color.Gray)
+            } else {
+                Button(
+                    onClick = onUseVoucher,
+                    modifier = Modifier.padding(top = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = IncomeGreen),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Use voucher") }
+            }
+        }
+        message?.let {
+            Text(it, color = Forest, modifier = Modifier.padding(top = 8.dp))
         }
     }
 }

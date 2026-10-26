@@ -25,6 +25,7 @@ import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 
 
 data class MonthSpend(
@@ -40,6 +41,7 @@ class SchwiftyRepository(
 ) {
     private val tag = "SchwiftyRepo"
     private val rewardStore = RewardStore(appContext)
+    private val savingsRewardStore = SavingsRewardStore(appContext)
     private val seenBadgeIds = mutableSetOf<String>()
     private var badgesPrimed = false
     private val badgeNoticeFlow = MutableStateFlow<String?>(null)
@@ -255,6 +257,75 @@ class SchwiftyRepository(
         val received = db.expenseDao().totalReceivedCents(userId, start, end)
         val spent = kotlin.math.abs(db.expenseDao().totalSpentCents(userId, start, end))
         return received - spent
+    }
+
+    suspend fun monthReward(userId: Long): MonthReward {
+        val previous = java.time.YearMonth.now().minusMonths(1)
+        val start = previous.atDay(1).toEpochDay()
+        val end = previous.atEndOfMonth().toEpochDay()
+        val received = db.expenseDao().totalReceivedCents(userId, start, end)
+        val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
+        val saved = received - spent
+        val percent = if (received <= 0L) 0 else ((saved * 100) / received).toInt().coerceAtMost(100)
+        val rivals = observeLeaderboard().first()
+        val user = db.userDao().findById(userId)
+        val meName = user?.displayName?.ifBlank { user.username } ?: "You"
+        val rows = rivals.map { Triple(it.username, it.savingsPercent, false) } +
+            Triple(meName, percent, true)
+        val ordered = rows.sortedWith(
+            compareByDescending<Triple<String, Int, Boolean>> { it.second }.thenBy { it.first }
+        )
+        val place = ordered.indexOfFirst { it.third } + 1
+        val eligible = place in 1..10 && saved > 0L
+        val maxDeposit = if (eligible) minOf(200_000L, saved) else 0L
+        val yearMonth = previous.toString()
+        val monthLabel = previous.month.getDisplayName(
+            java.time.format.TextStyle.FULL,
+            java.util.Locale.ENGLISH
+        )
+        return MonthReward(
+            monthLabel = monthLabel,
+            yearMonth = yearMonth,
+            place = place,
+            savedCents = saved,
+            maxDepositCents = maxDeposit,
+            eligible = eligible,
+            firstPlace = eligible && place == 1,
+            alreadyDeposited = yearMonth in savingsRewardStore.depositedMonths(userId),
+            savingsBalanceCents = savingsRewardStore.balance(userId),
+            voucherUsed = yearMonth in savingsRewardStore.usedVoucherMonths(userId)
+        )
+    }
+
+    suspend fun placeInSavings(userId: Long, randAmount: Long): Result<Long> {
+        val reward = monthReward(userId)
+        if (!reward.eligible) {
+            return Result.failure(IllegalStateException("Not eligible for last month"))
+        }
+        if (reward.alreadyDeposited) {
+            return Result.failure(IllegalStateException("Already placed savings for this month"))
+        }
+        val cents = randAmount * 100
+        if (cents < 100 || cents > reward.maxDepositCents) {
+            return Result.failure(IllegalArgumentException("Amount must be from R1 up to the maximum"))
+        }
+        val credit = cents + (cents * 20 / 100)
+        savingsRewardStore.deposit(userId, reward.yearMonth, credit)
+        Log.i(tag, "Placed $cents cents in savings, credited $credit")
+        return Result.success(credit)
+    }
+
+    suspend fun useSavingsVoucher(userId: Long): Result<Unit> {
+        val reward = monthReward(userId)
+        if (!reward.firstPlace) {
+            return Result.failure(IllegalStateException("Voucher is for first place only"))
+        }
+        if (reward.voucherUsed) {
+            return Result.failure(IllegalStateException("Voucher already used"))
+        }
+        savingsRewardStore.useVoucher(userId, reward.yearMonth)
+        Log.i(tag, "Used R1000 voucher for ${reward.yearMonth}")
+        return Result.success(Unit)
     }
 
     suspend fun monthlySpending(userId: Long): List<MonthSpend> {
