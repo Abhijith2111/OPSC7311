@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1094639366916",
+    "project_id": "schwifty-savings",
+    "storage_bucket": "schwifty-savings.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1094639366916:android:25a0b0319280b810cd5651",
+        "android_client_info": {
+          "package_name": "com.example.schwiftysavings"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_uUg4IHKEe3zRKq5M9scbNyILMHbfl88"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
