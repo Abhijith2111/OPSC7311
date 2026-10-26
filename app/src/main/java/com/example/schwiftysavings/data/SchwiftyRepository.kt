@@ -17,6 +17,7 @@ import java.io.File
 import java.util.UUID
 import com.example.schwiftysavings.data.remote.FirestoreSync
 import com.example.schwiftysavings.util.Badge
+import com.example.schwiftysavings.util.BadgeRules
 import com.example.schwiftysavings.util.GoalZone
 import com.example.schwiftysavings.util.MonthProgress
 import kotlin.math.abs
