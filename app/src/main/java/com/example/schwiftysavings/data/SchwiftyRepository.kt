@@ -21,6 +21,9 @@ import com.example.schwiftysavings.util.BadgeRules
 import com.example.schwiftysavings.util.GoalZone
 import com.example.schwiftysavings.util.MonthProgress
 import kotlin.math.abs
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 
 class SchwiftyRepository(
@@ -30,8 +33,24 @@ class SchwiftyRepository(
     private val cloudSync: FirestoreSync
 ) {
     private val tag = "SchwiftyRepo"
+    private val seenBadgeIds = mutableSetOf<String>()
+    private var badgesPrimed = false
+    private val badgeNoticeFlow = MutableStateFlow<String?>(null)
 
     val sessionUserId: Flow<Long?> = sessionStore.userIdFlow
+    val badgeNotice: StateFlow<String?> = badgeNoticeFlow.asStateFlow()
+
+    fun clearBadgeNotice() {
+        badgeNoticeFlow.value = null
+    }
+
+    /** Remember badges already unlocked so opening the app does not pop them again. */
+    suspend fun primeBadgeSeen(userId: Long) {
+        if (badgesPrimed) return
+        seenBadgeIds += currentBadges(userId).filter { it.unlocked }.map { it.id }
+        badgesPrimed = true
+        Log.d(tag, "Primed ${seenBadgeIds.size} badges without a banner")
+    }
 
     suspend fun register(username: String, password: String, displayName: String): Result<Long> {
         val clean = username.trim()
@@ -100,6 +119,9 @@ class SchwiftyRepository(
 
     suspend fun logout() {
         Log.i(tag, "Logout")
+        seenBadgeIds.clear()
+        badgesPrimed = false
+        badgeNoticeFlow.value = null
         sessionStore.setUserId(null)
     }
 
@@ -277,7 +299,9 @@ class SchwiftyRepository(
     }
 
     private suspend fun pushBadgesAndScore(userId: Long) {
-        cloudSync.pushBadges(userId, currentBadges(userId))
+        val badges = currentBadges(userId)
+        noteNewBadges(badges)
+        cloudSync.pushBadges(userId, badges)
         val user = db.userDao().findById(userId) ?: return
         cloudSync.pushLeaderboard(
             userId,
@@ -310,6 +334,21 @@ class SchwiftyRepository(
             db.budgetGoalDao().upsert(goal)
         }
         Log.i(tag, "Pulled Firestore data for user $userId into Room")
+    }
+
+    private fun noteNewBadges(badges: List<Badge>) {
+        val unlocked = badges.filter { it.unlocked }
+        val fresh = unlocked.filter { it.id !in seenBadgeIds }
+        seenBadgeIds += unlocked.map { it.id }
+        badgesPrimed = true
+        if (fresh.isEmpty()) return
+        val titles = fresh.joinToString { it.title }
+        badgeNoticeFlow.value = if (fresh.size == 1) {
+            "Badge unlocked: $titles"
+        } else {
+            "Badges unlocked: $titles"
+        }
+        Log.i(tag, badgeNoticeFlow.value ?: "Badge unlocked")
     }
 
     private suspend fun cloud(block: suspend () -> Unit) {

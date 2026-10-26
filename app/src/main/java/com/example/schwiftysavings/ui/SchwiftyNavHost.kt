@@ -1,6 +1,11 @@
 package com.example.schwiftysavings.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Home
@@ -14,9 +19,13 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,6 +51,7 @@ import com.example.schwiftysavings.ui.screens.SettingsScreen
 import com.example.schwiftysavings.ui.screens.TransactionsScreen
 import com.example.schwiftysavings.ui.theme.Forest
 import com.example.schwiftysavings.ui.theme.Mint
+import kotlinx.coroutines.delay
 import com.example.schwiftysavings.ui.screens.BadgesScreen
 import com.example.schwiftysavings.ui.screens.GoalProgressScreen
 import com.example.schwiftysavings.ui.screens.SpendingChartScreen
@@ -59,6 +69,14 @@ fun SchwiftyNavHost(
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val showBottomBar = currentRoute in bottomBarRoutes
+    val badgeNotice by repository.badgeNotice.collectAsState()
+
+    LaunchedEffect(badgeNotice) {
+        if (!badgeNotice.isNullOrBlank()) {
+            delay(3000)
+            repository.clearBadgeNotice()
+        }
+    }
 
     val tabs = listOf(
         Tab(Screen.Home.route, "Home", Icons.Default.Home),
@@ -68,6 +86,7 @@ fun SchwiftyNavHost(
         Tab(Screen.Settings.route, "Settings", Icons.Default.Settings)
     )
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
@@ -259,6 +278,21 @@ fun SchwiftyNavHost(
                     onBack = { navController.popBackStack() }
                 )
             }
+        }
+    }
+        val message = badgeNotice
+        if (!message.isNullOrBlank()) {
+            Text(
+                text = message,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, start = 16.dp, end = 16.dp)
+                    .background(Forest, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
