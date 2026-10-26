@@ -24,5 +24,6 @@ data class MonthProgress(
     val spentCents: Long,
     val minCents: Long?,
     val maxCents: Long?,
-    val zone: GoalZone
+    val zone: GoalZone,
+    val monthLabel: String = ""
 )

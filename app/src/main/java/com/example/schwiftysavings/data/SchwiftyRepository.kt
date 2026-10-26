@@ -255,11 +255,18 @@ class SchwiftyRepository(
     }
 
     suspend fun pastMonthProgress(userId: Long): MonthProgress {
-        val (start, end) = DateUtils.periodRange(PeriodFilter.LAST_30_DAYS)
+        val previous = java.time.YearMonth.now().minusMonths(1)
+        val start = previous.atDay(1).toEpochDay()
+        val end = previous.atEndOfMonth().toEpochDay()
         val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
-        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth())
+        val goal = db.budgetGoalDao().find(userId, previous.toString())
+            ?: db.budgetGoalDao().find(userId, DateUtils.currentYearMonth())
         val zone = GoalZone.of(spent, goal?.minGoalCents, goal?.maxGoalCents)
-        return MonthProgress(spent, goal?.minGoalCents, goal?.maxGoalCents, zone)
+        val monthLabel = previous.month.getDisplayName(
+            java.time.format.TextStyle.FULL,
+            java.util.Locale.ENGLISH
+        )
+        return MonthProgress(spent, goal?.minGoalCents, goal?.maxGoalCents, zone, monthLabel)
     }
 
     suspend fun currentBadges(userId: Long): List<Badge> {
