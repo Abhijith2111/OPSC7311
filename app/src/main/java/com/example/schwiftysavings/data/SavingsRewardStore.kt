@@ -58,4 +58,23 @@ class SavingsRewardStore(private val context: Context) {
             prefs[voucherUsedKey(userId)] = months + yearMonth
         }
     }
+
+    /** Adds money to the savings balance without counting as a monthly deposit. */
+    suspend fun credit(userId: Long, creditCents: Long) {
+        context.savingsRewards.edit { prefs ->
+            val balance = prefs[balanceKey(userId)] ?: 0L
+            prefs[balanceKey(userId)] = balance + creditCents
+        }
+    }
+
+    /** Credits the first-place voucher once, even if Redeem is pressed twice. */
+    suspend fun creditVoucher(userId: Long, yearMonth: String, creditCents: Long) {
+        context.savingsRewards.edit { prefs ->
+            val months = prefs[voucherUsedKey(userId)] ?: emptySet()
+            if (yearMonth in months) return@edit
+            prefs[voucherUsedKey(userId)] = months + yearMonth
+            val balance = prefs[balanceKey(userId)] ?: 0L
+            prefs[balanceKey(userId)] = balance + creditCents
+        }
+    }
 }

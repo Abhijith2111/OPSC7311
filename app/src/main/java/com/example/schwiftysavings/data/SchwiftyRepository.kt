@@ -323,8 +323,8 @@ class SchwiftyRepository(
         if (reward.voucherUsed) {
             return Result.failure(IllegalStateException("Voucher already used"))
         }
-        savingsRewardStore.useVoucher(userId, reward.yearMonth)
-        Log.i(tag, "Used R1000 voucher for ${reward.yearMonth}")
+        savingsRewardStore.creditVoucher(userId, reward.yearMonth, 100_000L)
+        Log.i(tag, "Redeemed R1000 voucher for ${reward.yearMonth}")
         return Result.success(Unit)
     }
 

@@ -139,7 +139,7 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
                         scope.launch {
                             val result = repository.useSavingsVoucher(userId)
                             rewardMessage = result.fold(
-                                onSuccess = { "R1000 voucher used." },
+                                onSuccess = { "R1000 added to your savings balance." },
                                 onFailure = { it.message ?: "Could not use voucher" }
                             )
                             reward = repository.monthReward(userId)
