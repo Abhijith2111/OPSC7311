@@ -89,6 +89,15 @@ interface ExpenseDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountCents), 0) FROM expenses
+        WHERE userId = :userId AND amountCents > 0
+          AND dateEpochDay BETWEEN :startDay AND :endDay
+        """
+    )
+    suspend fun totalReceivedCents(userId: Long, startDay: Long, endDay: Long): Long
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountCents), 0) FROM expenses
         WHERE userId = :userId
         """
     )

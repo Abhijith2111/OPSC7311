@@ -213,19 +213,19 @@ class SchwiftyRepository(
     fun observeLeaderboard() = db.leaderboardDao().observeAll()
 
     suspend fun savingsPercent(userId: Long): Int {
-        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth()) ?: return 0
         val (start, end) = DateUtils.periodRange(PeriodFilter.THIS_MONTH)
-        val spentAbs = kotlin.math.abs(db.expenseDao().totalSpentCents(userId, start, end))
-        if (goal.maxGoalCents <= 0L) return 0
-        val remaining = (goal.maxGoalCents - spentAbs).coerceAtLeast(0)
-        return ((remaining * 100) / goal.maxGoalCents).toInt().coerceIn(0, 100)
+        val received = db.expenseDao().totalReceivedCents(userId, start, end)
+        if (received <= 0L) return 0
+        val saved = savedAmountCents(userId)
+        return ((saved * 100) / received).toInt().coerceAtMost(100)
     }
 
+    /** Money received this month minus money spent this month. */
     suspend fun savedAmountCents(userId: Long): Long {
-        val goal = db.budgetGoalDao().find(userId, DateUtils.currentYearMonth()) ?: return 0
         val (start, end) = DateUtils.periodRange(PeriodFilter.THIS_MONTH)
-        val spentAbs = kotlin.math.abs(db.expenseDao().totalSpentCents(userId, start, end))
-        return (goal.maxGoalCents - spentAbs).coerceAtLeast(0)
+        val received = db.expenseDao().totalReceivedCents(userId, start, end)
+        val spent = kotlin.math.abs(db.expenseDao().totalSpentCents(userId, start, end))
+        return received - spent
     }
 
     suspend fun pullFromCloud(userId: Long) {
