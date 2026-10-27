@@ -66,7 +66,7 @@ class SchwiftyRepository(
         val clean = username.trim()
         if (clean.isEmpty()) {
             Log.w(tag, "Register failed: invalid input")
-            return Result.failure(IllegalArgumentException("Username required"))
+            return Result.failure(IllegalArgumentException("User name required"))
         }
         val passwordError = PasswordRules.requirementError(password)
         if (passwordError != null) {
@@ -74,7 +74,7 @@ class SchwiftyRepository(
             return Result.failure(IllegalArgumentException(passwordError))
         }
         if (db.userDao().findByUsername(clean) != null) {
-            return Result.failure(IllegalArgumentException("Username already taken"))
+            return Result.failure(IllegalArgumentException("User name already taken"))
         }
         val takenOnline = try {
             cloudSync.findUser(clean) != null
@@ -83,7 +83,7 @@ class SchwiftyRepository(
             false
         }
         if (takenOnline) {
-            return Result.failure(IllegalArgumentException("Username already taken"))
+            return Result.failure(IllegalArgumentException("User name already taken"))
         }
         val salt = PasswordHasher.newSalt()
         val hash = PasswordHasher.hash(password, salt)
@@ -124,7 +124,7 @@ class SchwiftyRepository(
         }
         if (user == null || !PasswordHasher.matches(password, user.salt, user.passwordHash)) {
             Log.w(tag, "Login failed for $clean")
-            return Result.failure(IllegalArgumentException("Invalid username or password"))
+            return Result.failure(IllegalArgumentException("Invalid user name or password"))
         }
         sessionStore.setUserId(user.id)
         cloud { pullRemote(user.id) }
@@ -275,7 +275,7 @@ class SchwiftyRepository(
         val percent = if (received <= 0L) 0 else ((saved * 100) / received).toInt().coerceAtMost(100)
         val rivals = observeLeaderboard().first()
         val user = db.userDao().findById(userId)
-        val meName = user?.displayName?.ifBlank { user.username } ?: "You"
+        val meName = user?.username?.ifBlank { "You" } ?: "You"
         val rows = rivals.map { Triple(it.username, it.savingsPercent, false) } +
             Triple(meName, percent, true)
         val ordered = rows.sortedWith(

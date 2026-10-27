@@ -76,7 +76,7 @@ fun HomeScreen(
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text("Signed in as ${user?.displayName ?: "..."}", color = Color(0xFFD8F3DC), fontSize = 12.sp)
+                Text("Signed in as ${user?.username ?: "..."}", color = Color(0xFFD8F3DC), fontSize = 12.sp)
                 Spacer(Modifier.height(20.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),

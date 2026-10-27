@@ -61,12 +61,12 @@ object AuthScreens {
             verticalArrangement = Arrangement.Center
         ) {
             Text("Schwifty Savings", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Forest)
-            Text("Sign in with username and password", color = Forest)
+            Text("Sign in with your user name and password", color = Forest)
             Spacer(Modifier.height(24.dp))
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
-                label = { Text("Username") },
+                label = { Text("User name") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -106,8 +106,8 @@ object AuthScreens {
         onRegistered: () -> Unit,
         onBack: () -> Unit
     ) {
-        var username by remember { mutableStateOf("") }
-        var displayName by remember { mutableStateOf("") }
+        var userName by remember { mutableStateOf("") }
+        var personalName by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var error by remember { mutableStateOf<String?>(null) }
         val scope = rememberCoroutineScope()
@@ -130,23 +130,31 @@ object AuthScreens {
             Text("Create account", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Forest)
             Spacer(Modifier.height(24.dp))
             OutlinedTextField(
-                value = displayName,
-                onValueChange = { displayName = it },
-                label = { Text("Display name") },
-                modifier = Modifier.fillMaxWidth()
+                value = userName,
+                onValueChange = { userName = it },
+                label = { Text("User name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "Do not use your real name as your display name.",
+                "Do not use your real name as your user name. Only one person can use each user name.",
                 color = TextMuted,
                 fontSize = 13.sp
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth()
+                value = personalName,
+                onValueChange = { personalName = it },
+                label = { Text("Personal name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Other people can use the same personal name.",
+                color = TextMuted,
+                fontSize = 13.sp
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
@@ -196,7 +204,7 @@ object AuthScreens {
             Button(
                 onClick = {
                     scope.launch {
-                        repository.register(username, password, displayName)
+                        repository.register(userName, password, personalName)
                             .onSuccess { onRegistered() }
                             .onFailure { error = it.message }
                     }

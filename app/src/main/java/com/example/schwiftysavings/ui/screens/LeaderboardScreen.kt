@@ -52,7 +52,7 @@ private data class RankRow(
 @Composable
 fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
     val entries by repository.observeLeaderboard().collectAsState(initial = emptyList())
-    var displayName by remember { mutableStateOf("") }
+    var userName by remember { mutableStateOf("") }
     var myPercent by remember { mutableIntStateOf(0) }
     var mySaved by remember { mutableLongStateOf(0L) }
     var cloudNote by remember { mutableStateOf("") }
@@ -63,7 +63,7 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
 
     LaunchedEffect(userId) {
         val user = repository.currentUser(userId)
-        displayName = user?.displayName?.ifBlank { user.username } ?: "You"
+        userName = user?.username?.ifBlank { "You" } ?: "You"
         myPercent = repository.savingsPercent(userId)
         mySaved = repository.savedAmountCents(userId)
         cloudNote = repository.publishScore(userId)
@@ -71,9 +71,9 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
     }
 
     // Merge current user into the list and rank by percent (highest first)
-    val ranked = remember(entries, displayName, myPercent) {
+    val ranked = remember(entries, userName, myPercent) {
         val others = entries.map { RankRow(name = it.username, percent = it.savingsPercent, isYou = false) }
-        val me = RankRow(name = displayName.ifBlank { "You" }, percent = myPercent, isYou = true)
+        val me = RankRow(name = userName.ifBlank { "You" }, percent = myPercent, isYou = true)
         (others + me).sortedWith(compareByDescending<RankRow> { it.percent }.thenBy { it.name })
     }
 
@@ -88,8 +88,8 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
             Text("Income this month minus what you spent", color = Color(0xFFD8F3DC), fontSize = 12.sp)
             Text("%$myPercent", color = Color.White, fontSize = 22.sp)
             Spacer(Modifier.height(12.dp))
-            Text("YOUR DISPLAY NAME", color = Color(0xFFB7E4C7), fontSize = 11.sp)
-            Text(displayName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("YOUR USER NAME", color = Color(0xFFB7E4C7), fontSize = 11.sp)
+            Text(userName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Text(cloudNote, color = Color(0xFFD8F3DC), fontSize = 12.sp)
         }
         LazyColumn {
