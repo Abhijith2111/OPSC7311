@@ -150,12 +150,6 @@ object AuthScreens {
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Other people can use the same personal name.",
-                color = TextMuted,
-                fontSize = 13.sp
-            )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = password,
