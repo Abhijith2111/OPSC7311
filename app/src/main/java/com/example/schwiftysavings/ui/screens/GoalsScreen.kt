@@ -59,8 +59,8 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
         if (draggingMin || draggingMax) return@LaunchedEffect
         val g = goal
         if (g != null) {
-            minRands = (g.minGoalCents / 100).toInt().coerceIn(0, 50_000)
-            maxRands = (g.maxGoalCents / 100).toInt().coerceIn(0, 50_000)
+            minRands = snapGoalRands((g.minGoalCents / 100).toInt())
+            maxRands = snapGoalRands((g.maxGoalCents / 100).toInt())
             seededFromDb = true
         } else if (!seededFromDb) {
             minRands = 500
@@ -73,7 +73,7 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
     ) {
         TextButton(onClick = onBack) { Text("← Back") }
         Text("Monthly spending goals", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Forest)
-        Text("Drag SeekBars to set minimum and maximum goals.", color = Color.Gray)
+        Text("Drag the bars in steps of R50 to set the minimum and maximum.", color = Color.Gray)
         Spacer(Modifier.height(16.dp))
 
         Text("Minimum: R${numberFormat.format(minRands)}", color = Forest, fontWeight = FontWeight.SemiBold)
@@ -81,11 +81,11 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
         AndroidView(
             factory = { context ->
                 SeekBar(context).apply {
-                    max = 50_000
-                    progress = minRands
+                    max = GOAL_STEPS
+                    progress = minRands / GOAL_STEP_RANDS
                     setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                         override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                            if (fromUser) minRands = progress
+                            if (fromUser) minRands = progress * GOAL_STEP_RANDS
                         }
                         override fun onStartTrackingTouch(seekBar: SeekBar?) {
                             draggingMin = true
@@ -97,8 +97,9 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
                 }
             },
             update = { seekBar ->
-                if (!draggingMin && seekBar.progress != minRands) {
-                    seekBar.progress = minRands
+                val step = minRands / GOAL_STEP_RANDS
+                if (!draggingMin && seekBar.progress != step) {
+                    seekBar.progress = step
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -110,11 +111,11 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
         AndroidView(
             factory = { context ->
                 SeekBar(context).apply {
-                    max = 50_000
-                    progress = maxRands
+                    max = GOAL_STEPS
+                    progress = maxRands / GOAL_STEP_RANDS
                     setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                         override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                            if (fromUser) maxRands = progress
+                            if (fromUser) maxRands = progress * GOAL_STEP_RANDS
                         }
                         override fun onStartTrackingTouch(seekBar: SeekBar?) {
                             draggingMax = true
@@ -126,8 +127,9 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
                 }
             },
             update = { seekBar ->
-                if (!draggingMax && seekBar.progress != maxRands) {
-                    seekBar.progress = maxRands
+                val step = maxRands / GOAL_STEP_RANDS
+                if (!draggingMax && seekBar.progress != step) {
+                    seekBar.progress = step
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -150,4 +152,13 @@ fun GoalsScreen(userId: Long, repository: SchwiftyRepository, onBack: () -> Unit
             shape = RoundedCornerShape(16.dp)
         ) { Text("Save goals") }
     }
+}
+
+private const val GOAL_STEP_RANDS = 50
+private const val GOAL_MAX_RANDS = 50_000
+private const val GOAL_STEPS = GOAL_MAX_RANDS / GOAL_STEP_RANDS
+
+private fun snapGoalRands(rands: Int): Int {
+    val snapped = ((rands + GOAL_STEP_RANDS / 2) / GOAL_STEP_RANDS) * GOAL_STEP_RANDS
+    return snapped.coerceIn(0, GOAL_MAX_RANDS)
 }
