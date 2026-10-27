@@ -11,6 +11,7 @@ import org.junit.Test
 import java.time.LocalDate
 import com.example.schwiftysavings.util.BadgeRules
 import com.example.schwiftysavings.util.GoalZone
+import com.example.schwiftysavings.util.PasswordRules
 
 class CoreLogicTest {
     @Test
@@ -77,5 +78,17 @@ class CoreLogicTest {
         assertFalse(badges.first { it.id == "receipt" }.unlocked)
         assertTrue(badges.first { it.id == "goal_setter" }.unlocked)
         assertTrue(badges.first { it.id == "in_the_zone" }.unlocked)
+    }
+
+    @Test
+    fun passwordRules_requireLengthLettersAndSpecial() {
+        assertEquals("Password must be at least 8 characters", PasswordRules.requirementError("ab!"))
+        assertEquals("Password must include letters", PasswordRules.requirementError("1234567!"))
+        assertEquals("Password must include a special character", PasswordRules.requirementError("abcdefgh"))
+        assertEquals(null, PasswordRules.requirementError("abcdefg!"))
+        assertEquals(PasswordRules.Strength.WEAK, PasswordRules.strength("abcdefg"))
+        assertEquals(PasswordRules.Strength.MEDIUM, PasswordRules.strength("abcdefg!"))
+        assertEquals(PasswordRules.Strength.STRONG, PasswordRules.strength("Abcdefg!9"))
+        assertTrue(PasswordRules.fraction("Abcdefg!9") > PasswordRules.fraction("abcdefg!"))
     }
 }

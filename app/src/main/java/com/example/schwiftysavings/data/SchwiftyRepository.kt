@@ -20,6 +20,7 @@ import com.example.schwiftysavings.util.Badge
 import com.example.schwiftysavings.util.BadgeRules
 import com.example.schwiftysavings.util.GoalZone
 import com.example.schwiftysavings.util.MonthProgress
+import com.example.schwiftysavings.util.PasswordRules
 import com.example.schwiftysavings.util.ShopCatalog
 import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,9 +64,14 @@ class SchwiftyRepository(
 
     suspend fun register(username: String, password: String, displayName: String): Result<Long> {
         val clean = username.trim()
-        if (clean.isEmpty() || password.length < 4) {
+        if (clean.isEmpty()) {
             Log.w(tag, "Register failed: invalid input")
-            return Result.failure(IllegalArgumentException("Username required; password min 4 chars"))
+            return Result.failure(IllegalArgumentException("Username required"))
+        }
+        val passwordError = PasswordRules.requirementError(password)
+        if (passwordError != null) {
+            Log.w(tag, "Register failed: invalid input")
+            return Result.failure(IllegalArgumentException(passwordError))
         }
         if (db.userDao().findByUsername(clean) != null) {
             return Result.failure(IllegalArgumentException("Username already taken"))

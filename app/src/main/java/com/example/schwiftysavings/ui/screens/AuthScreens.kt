@@ -3,17 +3,23 @@ package com.example.schwiftysavings.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,8 +33,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.schwiftysavings.data.SchwiftyRepository
+import com.example.schwiftysavings.ui.theme.Danger
 import com.example.schwiftysavings.ui.theme.Forest
+import com.example.schwiftysavings.ui.theme.IncomeGreen
 import com.example.schwiftysavings.ui.theme.Mint
+import com.example.schwiftysavings.ui.theme.TextMuted
+import com.example.schwiftysavings.util.PasswordRules
 import kotlinx.coroutines.launch
 
 object AuthScreens {
@@ -102,10 +112,18 @@ object AuthScreens {
         var error by remember { mutableStateOf<String?>(null) }
         val scope = rememberCoroutineScope()
 
+        val strength = PasswordRules.strength(password)
+        val strengthColor = when (strength) {
+            PasswordRules.Strength.STRONG -> IncomeGreen
+            PasswordRules.Strength.MEDIUM -> Color(0xFFC47B00)
+            else -> Danger
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Mint)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center
         ) {
@@ -124,14 +142,52 @@ object AuthScreens {
                 label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Do not use your real name as your username.",
+                color = TextMuted,
+                fontSize = 13.sp
+            )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password (min 4)") },
+                label = { Text("Password") },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "At least 8 characters. Use letters and a special character, such as ! @ #.",
+                color = TextMuted,
+                fontSize = 13.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { PasswordRules.fraction(password) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                color = strengthColor,
+                trackColor = Color.White
+            )
+            if (password.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        PasswordRules.label(password),
+                        color = strengthColor,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
             if (error != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(error!!, color = Color.Red)
