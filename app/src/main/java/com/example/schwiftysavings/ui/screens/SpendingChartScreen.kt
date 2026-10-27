@@ -3,6 +3,8 @@ package com.example.schwiftysavings.ui.screens
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,12 +13,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -40,11 +50,21 @@ fun SpendingChartScreen(
     onBack: () -> Unit
 ) {
     val goal by repository.observeGoal(userId).collectAsState(initial = null)
-    val months by produceState<List<MonthSpend>>(emptyList(), userId) {
-        value = repository.monthlySpending(userId)
+    val categories by repository.observeCategories(userId).collectAsState(initial = emptyList())
+    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
+    var menuOpen by remember { mutableStateOf(false) }
+    val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
+    LaunchedEffect(categories) {
+        if (selectedCategoryId != null && categories.none { it.id == selectedCategoryId }) {
+            selectedCategoryId = null
+        }
+    }
+    val months by produceState<List<MonthSpend>>(emptyList(), userId, selectedCategoryId) {
+        value = repository.monthlySpending(userId, selectedCategoryId)
     }
     val minGoal = goal?.minGoalCents ?: 0L
     val maxGoal = goal?.maxGoalCents ?: 0L
+    val showingAll = selectedCategory == null
 
     Column(
         Modifier
@@ -57,9 +77,66 @@ fun SpendingChartScreen(
         Text("Spending graph", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Forest)
         Text("Amount spent", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Forest)
         Text(
-            "Each bar is one month. The lines are your minimum and maximum spending goals.",
+            if (showingAll) {
+                "Each bar is one month. The lines are your minimum and maximum spending goals."
+            } else {
+                "Each bar is what you spent on ${selectedCategory?.name} that month."
+            },
             color = Color.Gray
         )
+        Spacer(Modifier.height(12.dp))
+        Text("Category", color = Forest, fontWeight = FontWeight.SemiBold)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = selectedCategory?.name ?: "All categories",
+                onValueChange = {},
+                readOnly = true,
+                enabled = false,
+                label = { Text("Tap to choose") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = Forest,
+                    disabledBorderColor = Forest,
+                    disabledLabelColor = Forest,
+                    disabledContainerColor = Color.White
+                )
+            )
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .clickable { menuOpen = true }
+            )
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                DropdownMenuItem(
+                    text = { Text("All categories") },
+                    onClick = {
+                        selectedCategoryId = null
+                        menuOpen = false
+                    }
+                )
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.name) },
+                        onClick = {
+                            selectedCategoryId = category.id
+                            menuOpen = false
+                        }
+                    )
+                }
+            }
+        }
+        if (categories.isEmpty()) {
+            Text(
+                "Add a category in Settings to filter this graph.",
+                color = Color.Gray,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         Spacer(Modifier.height(12.dp))
         Canvas(
             modifier = Modifier
@@ -78,7 +155,9 @@ fun SpendingChartScreen(
             val plotWidth = (plotRight - plotLeft).coerceAtLeast(1f)
 
             val highest = months.maxOfOrNull { it.spentCents } ?: 0L
-            val topCents = chartTopCents(maxOf(highest, minGoal, maxGoal, 100L))
+            val topCents = chartTopCents(
+                if (showingAll) maxOf(highest, minGoal, maxGoal, 100L) else maxOf(highest, 100L)
+            )
             val steps = 4
 
             val axisPaint = Paint().apply {
@@ -135,7 +214,7 @@ fun SpendingChartScreen(
                 axisPaint
             )
 
-            if (goal != null) {
+            if (showingAll && goal != null) {
                 val minY = plotBottom - (minGoal / topCents.toFloat()) * plotHeight
                 val maxY = plotBottom - (maxGoal / topCents.toFloat()) * plotHeight
                 drawLine(IncomeGreen, Offset(plotLeft, minY), Offset(plotRight, minY), strokeWidth = 4f)
@@ -143,17 +222,19 @@ fun SpendingChartScreen(
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text("Green line = minimum goal", color = IncomeGreen, fontSize = 13.sp)
-        Text("Red line = maximum goal", color = Danger, fontSize = 13.sp)
-        if (goal == null) {
-            Text("Set a minimum and maximum goal so the lines can be drawn.", color = Color.Gray)
+        if (showingAll) {
+            Text("Green line = minimum goal", color = IncomeGreen, fontSize = 13.sp)
+            Text("Red line = maximum goal", color = Danger, fontSize = 13.sp)
+            if (goal == null) {
+                Text("Set a minimum and maximum goal so the lines can be drawn.", color = Color.Gray)
+            }
+            Text(
+                "Min ${MoneyFormat.zarUnsignedFromCents(minGoal)}    Max ${MoneyFormat.zarUnsignedFromCents(maxGoal)}",
+                color = Forest,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
-        Text(
-            "Min ${MoneyFormat.zarUnsignedFromCents(minGoal)}    Max ${MoneyFormat.zarUnsignedFromCents(maxGoal)}",
-            color = Forest,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 8.dp)
-        )
         Spacer(Modifier.height(12.dp))
         months.forEach { month ->
             Text(

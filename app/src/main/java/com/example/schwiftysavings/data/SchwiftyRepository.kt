@@ -334,13 +334,17 @@ class SchwiftyRepository(
         return Result.success(Unit)
     }
 
-    suspend fun monthlySpending(userId: Long): List<MonthSpend> {
+    suspend fun monthlySpending(userId: Long, categoryId: Long? = null): List<MonthSpend> {
         val year = java.time.Year.now().value
         return (1..12).map { monthNumber ->
             val month = java.time.YearMonth.of(year, monthNumber)
             val start = month.atDay(1).toEpochDay()
             val end = month.atEndOfMonth().toEpochDay()
-            val spent = abs(db.expenseDao().totalSpentCents(userId, start, end))
+            val spent = if (categoryId == null) {
+                abs(db.expenseDao().totalSpentCents(userId, start, end))
+            } else {
+                abs(db.expenseDao().totalSpentCentsForCategory(userId, categoryId, start, end))
+            }
             val label = month.month.getDisplayName(
                 java.time.format.TextStyle.FULL,
                 java.util.Locale.ENGLISH
