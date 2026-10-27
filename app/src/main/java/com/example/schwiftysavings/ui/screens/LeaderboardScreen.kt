@@ -67,6 +67,7 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
         myPercent = repository.savingsPercent(userId)
         mySaved = repository.savedAmountCents(userId)
         cloudNote = repository.publishScore(userId)
+        repository.useSavingsVoucher(userId)
         reward = repository.monthReward(userId)
     }
 
@@ -139,7 +140,7 @@ fun LeaderboardScreen(userId: Long, repository: SchwiftyRepository) {
                         scope.launch {
                             val result = repository.useSavingsVoucher(userId)
                             rewardMessage = result.fold(
-                                onSuccess = { "R1000 added to your savings balance." },
+                                onSuccess = { "R1000 added to your home balance." },
                                 onFailure = { it.message ?: "Could not use voucher" }
                             )
                             reward = repository.monthReward(userId)
@@ -206,16 +207,16 @@ private fun MonthRewardCard(
         }
         if (details.firstPlace) {
             Spacer(Modifier.height(12.dp))
-            Text("First place prize: R1000 voucher", fontWeight = FontWeight.Bold, color = Forest)
+            Text("First place prize: R1000 on your home balance", fontWeight = FontWeight.Bold, color = Forest)
             if (details.voucherUsed) {
-                Text("Voucher used.", color = Color.Gray)
+                Text("It shows on the home page as a Request of R1000, won from the voucher.", color = Color.Gray)
             } else {
                 Button(
                     onClick = onUseVoucher,
                     modifier = Modifier.padding(top = 8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = IncomeGreen),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("Use voucher") }
+                ) { Text("Add to home balance") }
             }
         }
         message?.let {

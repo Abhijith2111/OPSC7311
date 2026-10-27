@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 
 data class MonthSpend(
@@ -41,6 +43,7 @@ class SchwiftyRepository(
     private val cloudSync: FirestoreSync
 ) {
     private val tag = "SchwiftyRepo"
+    private val voucherLock = Mutex()
     private val rewardStore = RewardStore(appContext)
     private val savingsRewardStore = SavingsRewardStore(appContext)
     private val seenBadgeIds = mutableSetOf<String>()
@@ -321,17 +324,77 @@ class SchwiftyRepository(
         return Result.success(credit)
     }
 
-    suspend fun useSavingsVoucher(userId: Long): Result<Unit> {
+    /** Same ordering as the leaderboard: this month's savings percent against the other names. */
+    private suspend fun currentLeaderboardPlace(userId: Long): Int {
+        val percent = savingsPercent(userId)
+        val rivals = observeLeaderboard().first()
+        val user = db.userDao().findById(userId)
+        val meName = user?.username?.ifBlank { "You" } ?: "You"
+        val rows = rivals.map { Triple(it.username, it.savingsPercent, false) } +
+            Triple(meName, percent, true)
+        val ordered = rows.sortedWith(
+            compareByDescending<Triple<String, Int, Boolean>> { it.second }.thenBy { it.first }
+        )
+        return ordered.indexOfFirst { it.third } + 1
+    }
+
+    suspend fun useSavingsVoucher(userId: Long): Result<Unit> = voucherLock.withLock {
         val reward = monthReward(userId)
-        if (!reward.firstPlace) {
-            return Result.failure(IllegalStateException("Voucher is for first place only"))
+        val months = buildList {
+            if (reward.firstPlace) add(reward.yearMonth)
+            if (currentLeaderboardPlace(userId) == 1 && savingsPercent(userId) > 0) {
+                add(DateUtils.currentYearMonth())
+            }
+        }.distinct()
+        if (months.isEmpty()) {
+            return@withLock Result.failure(IllegalStateException("Voucher is for first place only"))
         }
-        if (reward.voucherUsed) {
-            return Result.failure(IllegalStateException("Voucher already used"))
+        var paid = false
+        for (yearMonth in months) {
+            if (payFirstPlaceVoucher(userId, yearMonth)) paid = true
         }
-        savingsRewardStore.creditVoucher(userId, reward.yearMonth, 100_000L)
-        Log.i(tag, "Redeemed R1000 voucher for ${reward.yearMonth}")
-        return Result.success(Unit)
+        if (!paid && months.isNotEmpty()) {
+            Log.i(tag, "1st place voucher already on the home balance")
+        }
+        Result.success(Unit)
+    }
+
+    /** Adds R1000 to the home balance once, as income, the same way a request does. */
+    private suspend fun payFirstPlaceVoucher(userId: Long, yearMonth: String): Boolean {
+        val reference = "VOUCHER-$yearMonth"
+        val alreadyPaid = db.expenseDao().listForUser(userId).any { it.referenceNo == reference }
+        val alreadyMarked = yearMonth in savingsRewardStore.usedVoucherMonths(userId)
+        if (alreadyMarked || alreadyPaid) {
+            if (!alreadyMarked) savingsRewardStore.useVoucher(userId, yearMonth)
+            return false
+        }
+        val categories = db.categoryDao().listForUser(userId)
+        val category = categories.firstOrNull { it.name.equals("Revenue", ignoreCase = true) }
+            ?: categories.firstOrNull()
+            ?: return false
+        val today = java.time.LocalDate.now()
+        val id = db.expenseDao().insert(
+            ExpenseEntity(
+                userId = userId,
+                categoryId = category.id,
+                description = "Won from 1st place voucher",
+                merchantName = "Request",
+                dateEpochDay = today.toEpochDay(),
+                startMinute = 0,
+                endMinute = 0,
+                amountCents = 100_000L,
+                status = "SETTLED",
+                referenceNo = reference
+            )
+        )
+        savingsRewardStore.useVoucher(userId, yearMonth)
+        val saved = db.expenseDao().findById(id)
+        cloud {
+            if (saved != null) cloudSync.pushExpense(saved)
+            pushBadgesAndScore(userId)
+        }
+        Log.i(tag, "Added R1000 request to home balance for 1st place $yearMonth")
+        return true
     }
 
     suspend fun monthlySpending(userId: Long, categoryId: Long? = null): List<MonthSpend> {

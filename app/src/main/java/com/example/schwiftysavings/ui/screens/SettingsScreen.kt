@@ -65,8 +65,7 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val waitingToClaim = ShopCatalog.rewards.filter { it.id !in claimed }
     val readyToUse = ShopCatalog.rewards.filter { it.id in claimed }
-    val firstPlaceWaiting = monthReward?.firstPlace == true && monthReward?.voucherUsed == false
-    val nothingWaiting = waitingToClaim.isEmpty() && !firstPlaceWaiting
+    val nothingWaiting = waitingToClaim.isEmpty()
 
     Column(Modifier.fillMaxSize().background(Mint)) {
         Column(
@@ -119,30 +118,6 @@ fun SettingsScreen(
             color = Forest,
             fontWeight = FontWeight.SemiBold
         )
-        monthReward?.let { reward ->
-            if (reward.firstPlace && reward.voucherUsed) {
-                RewardCard(
-                    title = "1st place • ${reward.monthLabel}",
-                    detail = "R1000 voucher redeemed. It is already in your savings balance."
-                )
-            } else if (reward.firstPlace) {
-                RewardCard(
-                    title = "1st place • ${reward.monthLabel}",
-                    detail = "R1000 voucher. Redeem adds it to your savings balance.",
-                    action = "Redeem",
-                    onAction = {
-                        scope.launch {
-                            val result = repository.useSavingsVoucher(userId)
-                            rewardMessage = result.fold(
-                                onSuccess = { "R1000 added to your savings balance." },
-                                onFailure = { it.message ?: "Could not redeem voucher" }
-                            )
-                            refresh++
-                        }
-                    }
-                )
-            }
-        }
         waitingToClaim.forEach { reward ->
             RewardCard(
                 title = reward.title,

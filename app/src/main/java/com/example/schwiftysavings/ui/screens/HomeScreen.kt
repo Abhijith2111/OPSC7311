@@ -18,6 +18,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -54,6 +55,9 @@ fun HomeScreen(
     }
     val (start, end) = DateUtils.periodRange(PeriodFilter.LAST_30_DAYS)
     val expenses by repository.observeExpenses(userId, start, end).collectAsState(initial = emptyList())
+    LaunchedEffect(userId) {
+        repository.useSavingsVoucher(userId)
+    }
 
     LazyColumn(
         modifier = Modifier
