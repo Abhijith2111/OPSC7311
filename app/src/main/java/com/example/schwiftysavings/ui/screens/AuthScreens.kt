@@ -135,18 +135,18 @@ object AuthScreens {
                 label = { Text("Display name") },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Do not use your real name as your display name.",
+                color = TextMuted,
+                fontSize = 13.sp
+            )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
                 label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Do not use your real name as your username.",
-                color = TextMuted,
-                fontSize = 13.sp
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
