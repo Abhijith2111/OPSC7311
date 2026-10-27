@@ -16,13 +16,9 @@ The app keeps the Part 2 layout: mint background, forest headers, and rounded ca
 
 The launcher icon was drawn in Figma as a 1024 by 1024 forest square with the letters SS, then imported with Android Studio Image Asset.
 
-![App icon](docs/schwifty_icon.png)
-
-![Spending graph frame](docs/spending_graph.png)
-
-![Badges frame](docs/badges.png)
-
 ## Features marked for Part 3
+
+
 
 ### Own feature 1 — Leaderboard
 
@@ -46,6 +42,8 @@ The earned list is written to the Firestore collection `badges`.
 - Goal progress (Settings). A bar for the last 30 days. The green band is the gap between minimum and maximum. The dark line is the amount spent. The heading says below, inside, or over the goals.
 - Online database. Cloud Firestore stores users, categories, expenses, goals, badges, and the leaderboard score. The phone still uses Room so the screens keep working offline. Register, login, and each save also write to Firestore. Login and opening the home screen read Firestore back into Room, so a second phone can sign in with the same username and password.
 
+
+
 ## GitHub and GitHub Actions
 
 The source is this repository. Work is committed to `main` as features are finished.
@@ -66,7 +64,7 @@ On every push to `main` the workflow:
 
 Recorded on a physical Android phone, with a voiceover. The video shows login, an expense being saved, that expense appearing in the Firebase console, the spending graph, goal progress, badges, and the leaderboard.
 
-Unlisted YouTube link: PASTE_NEW_VIDEO_LINK_HERE
+Unlisted YouTube link: [https://youtu.be/kZvyEpQuKP0](https://youtu.be/kZvyEpQuKP0) 
 
 ## How to run
 
@@ -74,6 +72,8 @@ Unlisted YouTube link: PASTE_NEW_VIDEO_LINK_HERE
 2. Open the folder that contains `settings.gradle.kts` in Android Studio.
 3. Sync Gradle.
 4. Run on a physical Android phone, API 26 or higher. Enable Developer options and USB debugging, accept the RSA prompt, then choose the phone in the device dropdown.
+
+
 
 ## APK
 
@@ -87,16 +87,16 @@ The same APK is the GitHub Actions artifact named `app-debug`.
 
 ## Reference list
 
-Android Developers, 2024. Intents and intent filters. [online] Available at: <https://developer.android.com/guide/components/intents-filters> [Accessed 11 September 2026].
+Android Developers, 2024. Intents and intent filters. [online] Available at: [https://developer.android.com/guide/components/intents-filters](https://developer.android.com/guide/components/intents-filters) [Accessed 11 September 2026].
 
-Android Developers, 2024. Jetpack Compose tutorial. [online] Available at: <https://developer.android.com/develop/ui/compose/tutorial> [Accessed 12 September 2026].
+Android Developers, 2024. Jetpack Compose tutorial. [online] Available at: [https://developer.android.com/develop/ui/compose/tutorial](https://developer.android.com/develop/ui/compose/tutorial) [Accessed 12 September 2026].
 
-Android Developers, 2024. Save data in a local database using Room. [online] Available at: <https://developer.android.com/training/data-storage/room> [Accessed 09 September 2026].
+Android Developers, 2024. Save data in a local database using Room. [online] Available at: [https://developer.android.com/training/data-storage/room](https://developer.android.com/training/data-storage/room) [Accessed 09 September 2026].
 
-Firebase, 2026. Add data to Cloud Firestore. [online] Available at: <https://firebase.google.com/docs/firestore/manage-data/add-data> [Accessed 26 October 2026].
+Firebase, 2026. Add data to Cloud Firestore. [online] Available at: [https://firebase.google.com/docs/firestore/manage-data/add-data](https://firebase.google.com/docs/firestore/manage-data/add-data) [Accessed 26 October 2026].
 
-Firebase, 2026. Get data with Cloud Firestore. [online] Available at: <https://firebase.google.com/docs/firestore/query-data/get-data> [Accessed 26 October 2026].
+Firebase, 2026. Get data with Cloud Firestore. [online] Available at: [https://firebase.google.com/docs/firestore/query-data/get-data](https://firebase.google.com/docs/firestore/query-data/get-data) [Accessed 26 October 2026].
 
-GitHub, 2024. Building and testing Java with Gradle. [online] Available at: <https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-gradle> [Accessed 16 September 2026].
+GitHub, 2024. Building and testing Java with Gradle. [online] Available at: [https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-gradle](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-gradle) [Accessed 16 September 2026].
 
-Oracle, 2021. Class NumberFormat (Java SE 17 & JDK 17). [online] Available at: <https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/text/NumberFormat.html> [Accessed 14 September 2026].
+Oracle, 2021. Class NumberFormat (Java SE 17 & JDK 17). [online] Available at: [https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/text/NumberFormat.html](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/text/NumberFormat.html) [Accessed 14 September 2026].
