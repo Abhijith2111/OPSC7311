@@ -88,14 +88,18 @@ fun SettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                user?.displayName?.take(2)?.uppercase() ?: "SS",
+                user?.username?.take(2)?.uppercase()?.ifBlank { "SS" } ?: "SS",
                 modifier = Modifier.size(48.dp).background(Forest, CircleShape).padding(12.dp),
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
             Column(Modifier.padding(start = 12.dp)) {
-                Text(user?.displayName ?: "", fontWeight = FontWeight.Bold, color = Forest)
-                Text("Primary Member • @${user?.username}", color = Color.Gray, fontSize = 12.sp)
+                Text(user?.username ?: "", fontWeight = FontWeight.Bold, color = Forest)
+                Text(
+                    "Primary Member • @${user?.displayName ?: ""}",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
             }
         }
         Text("ACCOUNT MANAGEMENT", modifier = Modifier.padding(horizontal = 16.dp), color = Color.Gray, fontSize = 12.sp)
